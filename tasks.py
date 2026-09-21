@@ -5,46 +5,96 @@ def create_exam_task(agent, question, student_answer, max_marks):
 
     task = Task(
         description=f"""
-        Check the student's answer for the following college exam question.
+You are checking a college student's exam answer.
 
-        QUESTION:
-        {question}
+QUESTION:
+{question}
 
-        STUDENT ANSWER:
-        {student_answer}
+STUDENT ANSWER:
+{student_answer}
 
-        MAXIMUM MARKS:
-        {max_marks}
+MAXIMUM MARKS:
+{max_marks}
 
-        Evaluate the answer using these criteria:
-        1. Correctness
-        2. Understanding of the main concept
-        3. Relevance to the question
-        4. Completeness
-        5. Important missing information
+MARKING RUBRIC:
 
-        Give a fair mark between 0 and {max_marks}.
+1. Correctness
+- Check whether the information in the answer is factually correct.
+- Do not give marks for incorrect information.
 
-        Return the result in this format:
+2. Key Concepts
+- Check whether the important concepts required by the question are present.
+- Give credit for correct concepts even if the wording is different.
 
-        Marks: X/{max_marks}
+3. Relevance
+- The answer must directly answer the question.
+- Do not give extra marks for unrelated information.
 
-        Feedback:
-        Explain briefly why these marks were given.
+4. Completeness
+- Compare the answer with what would normally be expected for the question.
+- Identify important missing points.
 
-        Missing Points:
-        List important points missing from the answer, if any.
-        """,
+5. Understanding
+- Check whether the student demonstrates understanding of the topic,
+  rather than only using keywords.
+
+MARKING RULES:
+
+- Give a fair score from 0 to {max_marks}.
+- NEVER give more than {max_marks}.
+- Do not assume information that the student did not write.
+- Give partial marks when the answer is partially correct.
+- Give 0 marks if the answer is completely incorrect or irrelevant.
+- Base the marks on the student's actual answer.
+- Explain clearly why the marks were awarded.
+- Mention important missing points.
+- If the answer is ambiguous or difficult to judge, mention:
+  "Teacher Review Recommended."
+
+RETURN THE RESULT EXACTLY IN THIS FORMAT:
+
+Marks: X/{max_marks}
+
+Correctness: [brief evaluation]
+
+Key Concepts: [brief evaluation]
+
+Relevance: [brief evaluation]
+
+Completeness: [brief evaluation]
+
+Feedback:
+[Short explanation of why these marks were given.]
+
+Missing Points:
+[List important missing points, or write "None"]
+
+Teacher Review:
+[Yes or No]
+
+Do not add unnecessary information outside this format.
+""",
 
         expected_output=f"""
-        Marks: X/{max_marks}
+Marks: X/{max_marks}
 
-        Feedback:
-        A short explanation of the marking.
+Correctness: Brief evaluation
 
-        Missing Points:
-        Important missing points or "None".
-        """,
+Key Concepts: Brief evaluation
+
+Relevance: Brief evaluation
+
+Completeness: Brief evaluation
+
+Feedback:
+Short explanation of the marks.
+
+Missing Points:
+Important missing points or "None"
+
+Teacher Review:
+Yes or No
+""",
 
         agent=agent
     )
