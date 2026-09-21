@@ -1,4 +1,4 @@
 streamlit
 crewai
 crewai-tools
-litellm
+litellm>=1.75.0
