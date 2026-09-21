@@ -1,4 +1,8 @@
 import streamlit as st
+from agents import create_exam_checker
+from tasks import create_exam_task
+from crewai import Crew
+
 
 st.set_page_config(
     page_title="College AI Exam Checker",
@@ -34,10 +38,36 @@ marks = st.number_input(
 )
 
 if st.button("🤖 Check Answer"):
+
     if not question or not student_answer:
         st.warning("Please enter both the question and student answer.")
+
     else:
-        st.info("AI Agent will check the answer here.")
-        st.write("**Question:**", question)
-        st.write("**Student Answer:**", student_answer)
-        st.write("**Maximum Marks:**", marks)
+
+        with st.spinner("AI Examiner is checking the answer..."):
+
+            try:
+                examiner = create_exam_checker()
+
+                exam_task = create_exam_task(
+                    examiner,
+                    question,
+                    student_answer,
+                    marks
+                )
+
+                crew = Crew(
+                    agents=[examiner],
+                    tasks=[exam_task],
+                    verbose=False
+                )
+
+                result = crew.kickoff()
+
+                st.success("✅ Answer checked!")
+
+                st.subheader("📊 AI Exam Result")
+                st.write(result)
+
+            except Exception as e:
+                st.error(f"Error: {e}")
