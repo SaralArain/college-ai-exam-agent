@@ -6,7 +6,7 @@ def create_exam_checker():
 
     llm = LLM(
         model="groq/openai/gpt-oss-120b",
-        api_key=os.getenv("GROQ_API_KEY")
+        api_key=st.secrets["GROQ_API_KEY"]
     )
 
     exam_checker = Agent(
