@@ -5,7 +5,7 @@ from crewai import Agent, LLM
 def create_exam_checker():
 
     llm = LLM(
-        model="gemini/gemini-2.5-flash",
+        model="gemini/gemini-3.6-flash",
         api_key=st.secrets["GEMINI_API_KEY"]
     )
 
