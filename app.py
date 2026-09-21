@@ -67,7 +67,7 @@ if st.button("🤖 Check Answer"):
                 st.success("✅ Answer checked!")
 
                 st.subheader("📊 AI Exam Result")
-                st.write(result)
+                st.write(result.raw)
 
             except Exception as e:
                 st.error(f"Error: {e}")
