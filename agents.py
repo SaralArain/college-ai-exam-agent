@@ -5,8 +5,8 @@ from crewai import Agent, LLM
 def create_exam_checker():
 
     llm = LLM(
-        model="groq/openai/gpt-oss-120b",
-        api_key=st.secrets["GROQ_API_KEY"]
+        model="gemini/gemini-2.5-flash",
+        api_key=st.secrets["GEMINI_API_KEY"]
     )
 
     exam_checker = Agent(
@@ -19,13 +19,11 @@ def create_exam_checker():
 
         backstory=(
             "You are an experienced college examiner. "
-            "You evaluate answers objectively and award marks based on "
-            "correct concepts, relevance, completeness and accuracy. "
-            "You never give marks simply because an answer is long."
+            "You evaluate answers objectively based on correctness, "
+            "understanding, relevance, completeness and accuracy."
         ),
 
         llm=llm,
-
         verbose=True
     )
 
