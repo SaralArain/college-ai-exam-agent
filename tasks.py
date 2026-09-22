@@ -5,7 +5,9 @@ def create_exam_task(agent, question, student_answer, max_marks):
 
     task = Task(
         description=f"""
-You are checking a college student's exam answer.
+You are a college mathematics examiner.
+
+Check the student's mathematics answer carefully.
 
 QUESTION:
 {question}
@@ -16,83 +18,89 @@ STUDENT ANSWER:
 MAXIMUM MARKS:
 {max_marks}
 
-MARKING RUBRIC:
+IMPORTANT INSTRUCTIONS:
 
-1. Correctness
-- Check whether the information in the answer is factually correct.
-- Do not give marks for incorrect information.
+1. Identify each individual math question in the input.
 
-2. Key Concepts
-- Check whether the important concepts required by the question are present.
-- Give credit for correct concepts even if the wording is different.
+2. Check each question separately.
 
-3. Relevance
-- The answer must directly answer the question.
-- Do not give extra marks for unrelated information.
+3. For every question:
+   - Determine the correct mathematical answer.
+   - Compare it with the student's answer.
+   - Check the student's calculation and working steps.
+   - Identify calculation mistakes.
+   - Give appropriate marks.
 
-4. Completeness
-- Compare the answer with what would normally be expected for the question.
-- Identify important missing points.
+4. Give partial marks when:
+   - The method is correct but there is a calculation error.
+   - Some important steps are correct but the final answer is wrong.
 
-5. Understanding
-- Check whether the student demonstrates understanding of the topic,
-  rather than only using keywords.
+5. Give zero marks when the solution is completely incorrect
+   or unrelated.
 
-MARKING RULES:
+6. Never give more than the maximum available marks.
 
-- Give a fair score from 0 to {max_marks}.
-- NEVER give more than {max_marks}.
-- Do not assume information that the student did not write.
-- Give partial marks when the answer is partially correct.
-- Give 0 marks if the answer is completely incorrect or irrelevant.
-- Base the marks on the student's actual answer.
-- Explain clearly why the marks were awarded.
-- Mention important missing points.
-- If the answer is ambiguous or difficult to judge, mention:
-  "Teacher Review Recommended."
+7. Do not assume steps that the student did not write.
 
-RETURN THE RESULT EXACTLY IN THIS FORMAT:
+8. Clearly show the correct answer when the student's answer is wrong.
 
-Marks: X/{max_marks}
+9. At the end, calculate the total marks.
 
-Correctness: [brief evaluation]
+10. If the student's working is unclear or difficult to judge,
+    write "Teacher Review Recommended."
 
-Key Concepts: [brief evaluation]
+RETURN THE RESULT IN THIS FORMAT:
 
-Relevance: [brief evaluation]
+Question 1:
+Student Answer:
+Correct Answer:
+Marks:
+Mistake/Explanation:
 
-Completeness: [brief evaluation]
+Question 2:
+Student Answer:
+Correct Answer:
+Marks:
+Mistake/Explanation:
 
-Feedback:
-[Short explanation of why these marks were given.]
+Question 3:
+Student Answer:
+Correct Answer:
+Marks:
+Mistake/Explanation:
 
-Missing Points:
-[List important missing points, or write "None"]
+Continue this format for all questions.
 
-Teacher Review:
-[Yes or No]
+TOTAL:
+Total Marks:
 
-Do not add unnecessary information outside this format.
+OVERALL FEEDBACK:
+Brief explanation of the student's performance.
+
+TEACHER REVIEW:
+Yes or No
 """,
 
-        expected_output=f"""
-Marks: X/{max_marks}
+        expected_output="""
+Question 1:
+Student Answer:
+Correct Answer:
+Marks:
+Mistake/Explanation:
 
-Correctness: Brief evaluation
+Question 2:
+Student Answer:
+Correct Answer:
+Marks:
+Mistake/Explanation:
 
-Key Concepts: Brief evaluation
+TOTAL:
+Total Marks:
 
-Relevance: Brief evaluation
+OVERALL FEEDBACK:
+Brief explanation.
 
-Completeness: Brief evaluation
-
-Feedback:
-Short explanation of the marks.
-
-Missing Points:
-Important missing points or "None"
-
-Teacher Review:
+TEACHER REVIEW:
 Yes or No
 """,
 
