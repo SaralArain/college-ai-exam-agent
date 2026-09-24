@@ -125,6 +125,46 @@ div[role="radiogroup"] label {
 /* Dataframe */
 [data-testid="stDataFrame"] { border: 1px solid var(--border-glow); border-radius: 12px; overflow: hidden; }
 
+/* Radio & checkbox accent color (fixes default red dot) */
+input[type="radio"], input[type="checkbox"] { accent-color: var(--neon) !important; }
+div[data-baseweb="radio"] > div:first-child,
+div[data-baseweb="checkbox"] > div:first-child {
+    border-color: var(--neon-soft) !important;
+}
+div[role="radiogroup"] label[data-baseweb="radio"] div:first-child svg,
+div[role="radiogroup"] label[data-baseweb="radio"] div:first-child { fill: var(--neon) !important; }
+
+/* Selected radio option gets a glowing highlight */
+div[role="radiogroup"] label:has(input:checked) {
+    border-color: var(--neon) !important;
+    box-shadow: 0 0 12px rgba(0, 229, 255, 0.45);
+}
+
+/* Alerts: distinct, high-contrast colors per type instead of default olive/beige */
+div[data-testid*="Warning"] {
+    background: rgba(255, 176, 32, 0.14) !important;
+    border-left: 4px solid #ffb020 !important;
+}
+div[data-testid*="Error"] {
+    background: rgba(255, 64, 129, 0.14) !important;
+    border-left: 4px solid #ff4081 !important;
+}
+div[data-testid*="Success"] {
+    background: rgba(0, 230, 150, 0.14) !important;
+    border-left: 4px solid #00e696 !important;
+}
+div[data-testid*="Info"] {
+    background: rgba(0, 229, 255, 0.14) !important;
+    border-left: 4px solid var(--neon) !important;
+}
+.stAlert, .stAlert p, .stAlert span { color: var(--text-main) !important; opacity: 1 !important; }
+
+/* Primary action button: stronger white text so it isn't lost on the gradient */
+.stButton button, .stDownloadButton button {
+    color: #ffffff !important;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.35);
+}
+
 /* Divider */
 hr { border-color: var(--border-glow) !important; }
 </style>
