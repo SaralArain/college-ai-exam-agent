@@ -17,13 +17,14 @@ st.markdown("""
 
 :root {
     --neon: #00e5ff;
+    --neon2: #7c5cff;
     --neon-soft: #38bdf8;
     --neon-glow: rgba(0, 229, 255, 0.35);
     --bg-deep: #060b16;
     --bg-panel: #0d1524;
-    --bg-card: rgba(17, 26, 43, 0.75);
-    --border-glow: rgba(0, 229, 255, 0.25);
-    --text-main: #e6f6ff;
+    --bg-card: rgba(255, 255, 255, 0.04);
+    --border-glow: rgba(255, 255, 255, 0.09);
+    --text-main: #e8f4ff;
     --text-dim: #8fa4c0;
 }
 
@@ -31,7 +32,10 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 h1, h2, h3, h4, .stMarkdown h3 { font-family: 'Space Grotesk', sans-serif; }
 
 .stApp {
-    background: radial-gradient(circle at 15% 0%, #0b1c33 0%, var(--bg-deep) 45%, #030509 100%);
+    background:
+        radial-gradient(circle at 10% -10%, rgba(0, 229, 255, 0.12), transparent 40%),
+        radial-gradient(circle at 100% 0%, rgba(124, 92, 255, 0.12), transparent 40%),
+        var(--bg-deep);
     color: var(--text-main);
 }
 
@@ -58,7 +62,31 @@ section[data-testid="stSidebar"] h2, section[data-testid="stSidebar"] h1 {
     text-shadow: 0 0 12px var(--neon-glow);
 }
 
-/* Subheaders as glowing section markers */
+/* Glass cards: bordered containers used to group each step */
+div[data-testid="stVerticalBlockBorderWrapper"] {
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-glow) !important;
+    border-radius: 18px !important;
+    padding: 6px 6px 14px 6px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+    margin-bottom: 22px;
+}
+
+/* Step header: gradient number badge + title, built via markdown */
+.step-header { display: flex; align-items: center; gap: 10px; margin: 4px 0 14px; }
+.step-header .step-num {
+    width: 26px; height: 26px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, var(--neon), var(--neon2));
+    color: #04101f; font-weight: 700; font-size: 0.85rem; flex-shrink: 0;
+}
+.step-header h3 {
+    margin: 0 !important; border-left: none !important; padding-left: 0 !important;
+    font-size: 1.05rem !important;
+}
+
+/* Plain subheaders elsewhere keep the glow-bar look */
 .stApp h3 {
     color: var(--text-main);
     border-left: 3px solid var(--neon);
@@ -66,7 +94,7 @@ section[data-testid="stSidebar"] h2, section[data-testid="stSidebar"] h1 {
     text-shadow: 0 0 10px rgba(0,229,255,0.15);
 }
 
-/* Cards: text areas, inputs, uploaders, dataframes */
+/* Inputs */
 .stTextArea textarea, .stTextInput input, .stNumberInput input, .stSelectbox div[data-baseweb="select"] {
     background-color: var(--bg-panel) !important;
     color: var(--text-main) !important;
@@ -79,7 +107,7 @@ section[data-testid="stSidebar"] h2, section[data-testid="stSidebar"] h1 {
 }
 
 [data-testid="stFileUploaderDropzone"] {
-    background: var(--bg-card) !important;
+    background: rgba(255,255,255,0.02) !important;
     border: 1.5px dashed var(--border-glow) !important;
     border-radius: 14px !important;
 }
@@ -87,10 +115,11 @@ section[data-testid="stSidebar"] h2, section[data-testid="stSidebar"] h1 {
 /* Buttons */
 .stButton button, .stDownloadButton button {
     background: linear-gradient(135deg, #00c2ff 0%, #6a5cff 100%) !important;
-    color: #04101f !important;
+    color: #ffffff !important;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.35);
     font-weight: 600 !important;
     border: none !important;
-    border-radius: 10px !important;
+    border-radius: 12px !important;
     box-shadow: 0 0 18px rgba(0, 194, 255, 0.35);
     transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
@@ -99,18 +128,37 @@ section[data-testid="stSidebar"] h2, section[data-testid="stSidebar"] h1 {
     box-shadow: 0 0 26px rgba(0, 229, 255, 0.55);
 }
 
-/* Radio / segmented controls */
+/* Radio groups rendered as pill toggles (Manual Questions / Upload PDF, etc.) */
+div[role="radiogroup"] { gap: 10px !important; }
 div[role="radiogroup"] label {
-    background: var(--bg-card);
-    border: 1px solid var(--border-glow);
-    border-radius: 8px;
-    padding: 4px 12px;
-    margin-right: 6px;
+    background: rgba(255,255,255,0.02) !important;
+    border: 1px solid var(--border-glow) !important;
+    border-radius: 999px !important;
+    padding: 8px 16px !important;
+    margin-right: 0 !important;
+    transition: box-shadow 0.15s ease, background 0.15s ease;
 }
+/* Hide the native circle indicator to get a clean pill look */
+div[role="radiogroup"] label > div:first-child { display: none !important; }
+div[role="radiogroup"] label p { color: var(--text-dim) !important; font-size: 0.85rem !important; margin: 0 !important; }
+
+div[role="radiogroup"] label:has(input:checked) {
+    background: linear-gradient(135deg, var(--neon), var(--neon2)) !important;
+    border-color: transparent !important;
+    box-shadow: 0 0 18px rgba(0, 229, 255, 0.45);
+}
+div[role="radiogroup"] label:has(input:checked) p {
+    color: #04101f !important;
+    font-weight: 600 !important;
+}
+
+/* Checkbox accent color */
+input[type="checkbox"] { accent-color: var(--neon) !important; }
+div[data-baseweb="checkbox"] > div:first-child { border-color: var(--neon-soft) !important; }
 
 /* Metrics */
 [data-testid="stMetric"] {
-    background: var(--bg-card);
+    background: rgba(255,255,255,0.03);
     border: 1px solid var(--border-glow);
     border-radius: 14px;
     padding: 14px 10px;
@@ -119,28 +167,8 @@ div[role="radiogroup"] label {
 [data-testid="stMetricValue"] { color: var(--neon) !important; text-shadow: 0 0 10px var(--neon-glow); }
 [data-testid="stMetricLabel"] { color: var(--text-dim) !important; }
 
-/* Alerts */
-.stAlert { border-radius: 12px !important; border: 1px solid var(--border-glow) !important; }
-
-/* Dataframe */
-[data-testid="stDataFrame"] { border: 1px solid var(--border-glow); border-radius: 12px; overflow: hidden; }
-
-/* Radio & checkbox accent color (fixes default red dot) */
-input[type="radio"], input[type="checkbox"] { accent-color: var(--neon) !important; }
-div[data-baseweb="radio"] > div:first-child,
-div[data-baseweb="checkbox"] > div:first-child {
-    border-color: var(--neon-soft) !important;
-}
-div[role="radiogroup"] label[data-baseweb="radio"] div:first-child svg,
-div[role="radiogroup"] label[data-baseweb="radio"] div:first-child { fill: var(--neon) !important; }
-
-/* Selected radio option gets a glowing highlight */
-div[role="radiogroup"] label:has(input:checked) {
-    border-color: var(--neon) !important;
-    box-shadow: 0 0 12px rgba(0, 229, 255, 0.45);
-}
-
 /* Alerts: distinct, high-contrast colors per type instead of default olive/beige */
+.stAlert { border-radius: 12px !important; }
 div[data-testid*="Warning"] {
     background: rgba(255, 176, 32, 0.14) !important;
     border-left: 4px solid #ffb020 !important;
@@ -159,20 +187,27 @@ div[data-testid*="Info"] {
 }
 .stAlert, .stAlert p, .stAlert span { color: var(--text-main) !important; opacity: 1 !important; }
 
-/* Primary action button: stronger white text so it isn't lost on the gradient */
-.stButton button, .stDownloadButton button {
-    color: #ffffff !important;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.35);
-}
+/* Dataframe */
+[data-testid="stDataFrame"] { border: 1px solid var(--border-glow); border-radius: 12px; overflow: hidden; }
 
 /* Divider */
 hr { border-color: var(--border-glow) !important; }
 </style>
 """, unsafe_allow_html=True)
 
+
+def step_header(number: str, title: str) -> None:
+    """Render a gradient number badge + title, matching the approved mockup."""
+    st.markdown(
+        f'<div class="step-header"><div class="step-num">{number}</div><h3>{title}</h3></div>',
+        unsafe_allow_html=True,
+    )
+
+
 st.title("🎓 AI Agent Exam Checker")
 st.caption("AI-assisted college exam checking with teacher-controlled final marks.")
 st.info("AI marks are recommendations. The teacher should review and approve final marks.")
+
 
 def extract_numbered_items(text: str) -> list[str]:
     """Group extracted PDF text into one item per numbered question/answer.
@@ -226,305 +261,312 @@ with st.sidebar:
         help="Optional. Ordinary grading should primarily use the teacher's material."
     )
 
-# ---------- Input mode ----------
-st.subheader("1️⃣ Exam Input")
-input_mode = st.radio(
-    "Choose input method",
-    ["Manual Questions", "Upload Question Paper PDF"],
-    horizontal=True
-)
-
 questions = []
 marks = []
-
-if input_mode == "Manual Questions":
-    questions_text = st.text_area(
-        "Questions (one per line)",
-        placeholder="1. What is photosynthesis?\n2. Explain respiration.",
-        height=180
-    )
-    marks_text = st.text_area(
-        "Maximum marks (one per line, same order)",
-        placeholder="5\n10",
-        height=120
-    )
-
-    questions = [x.strip() for x in questions_text.splitlines() if x.strip()]
-    try:
-        marks = [float(x.strip()) for x in marks_text.splitlines() if x.strip()]
-    except ValueError:
-        marks = []
-
-else:
-    uploaded_pdf = st.file_uploader("Upload Question Paper PDF", type=["pdf"])
-    if uploaded_pdf:
-        try:
-            reader = PdfReader(uploaded_pdf)
-            pdf_text = "\n".join(page.extract_text() or "" for page in reader.pages)
-            st.text_area("Extracted Question Paper Text", pdf_text, height=250)
-
-            st.warning(
-                "PDF extraction works for text-based PDFs. Scanned/handwritten PDFs "
-                "need the OCR/image mode below."
-            )
-
-            # Group lines by numbered question marker (1., 2., ...) so a
-            # question's options / wrapped lines aren't counted separately.
-            questions = extract_numbered_items(pdf_text)
-
-            marks_text = st.text_area(
-                "Maximum marks (one per extracted question)",
-                placeholder="5\n5\n10",
-                height=120
-            )
-            try:
-                marks = [float(x.strip()) for x in marks_text.splitlines() if x.strip()]
-            except ValueError:
-                marks = []
-
-        except Exception as e:
-            st.error(f"Could not read PDF: {e}")
-
-# ---------- Student answer sheet ----------
-st.subheader("2️⃣ Student Answer Sheet")
-answer_mode = st.radio(
-    "Choose answer input",
-    ["Paste/Type Answers", "Upload Answer Sheet PDF", "Upload Answer Sheet Image"],
-    horizontal=True
-)
-
 answers = []
 
-if answer_mode == "Paste/Type Answers":
-    answers_text = st.text_area(
-        "Student answers (one answer per line, same order as questions)",
-        placeholder="Photosynthesis is...\nRespiration is...",
-        height=240
+# ---------- Input mode ----------
+with st.container(border=True):
+    step_header("1", "Exam Input")
+    input_mode = st.radio(
+        "Choose input method",
+        ["Manual Questions", "Upload Question Paper PDF"],
+        horizontal=True
     )
-    answers = [x.strip() for x in answers_text.splitlines() if x.strip()]
 
-elif answer_mode == "Upload Answer Sheet PDF":
-    answer_pdf = st.file_uploader("Upload Student Answer Sheet PDF", type=["pdf"], key="answer_pdf")
-    if answer_pdf:
+    if input_mode == "Manual Questions":
+        questions_text = st.text_area(
+            "Questions (one per line)",
+            placeholder="1. What is photosynthesis?\n2. Explain respiration.",
+            height=180
+        )
+        marks_text = st.text_area(
+            "Maximum marks (one per line, same order)",
+            placeholder="5\n10",
+            height=120
+        )
+
+        questions = [x.strip() for x in questions_text.splitlines() if x.strip()]
         try:
-            reader = PdfReader(answer_pdf)
-            extracted = "\n".join(page.extract_text() or "" for page in reader.pages)
-            st.text_area("Extracted Answer Sheet Text", extracted, height=250)
-            # Group lines by numbered marker so each answer sheet item lines
-            # up 1:1 with the corresponding numbered question.
-            answers = extract_numbered_items(extracted)
-            st.warning(
-                "Text extraction is available for text PDFs. For handwriting, use the image "
-                "OCR option or provide a typed answer."
-            )
-        except Exception as e:
-            st.error(f"Could not read answer PDF: {e}")
+            marks = [float(x.strip()) for x in marks_text.splitlines() if x.strip()]
+        except ValueError:
+            marks = []
 
-else:
-    answer_image = st.file_uploader(
-        "Upload answer-sheet image",
-        type=["png", "jpg", "jpeg"],
-        key="answer_image"
-    )
-    if answer_image:
-        st.image(answer_image, caption="Uploaded answer sheet", use_container_width=True)
-        st.warning(
-            "Image OCR uses Gemini vision. If your current Gemini account/model does not "
-            "support image input, type/paste the answers instead."
-        )
-        if st.button("🔎 Extract Answers with AI OCR"):
-            from ocr import extract_answers_from_image
-            with st.spinner("Reading the answer sheet..."):
-                try:
-                    extracted = extract_answers_from_image(answer_image.getvalue())
-                    st.session_state.ocr_text = extracted
-                    st.success("OCR extraction completed.")
-                except Exception as e:
-                    st.error(f"OCR error: {e}")
-
-        ocr_text = st.text_area(
-            "OCR text / corrected answers",
-            value=st.session_state.get("ocr_text", ""),
-            height=220
-        )
-        answers = [x.strip() for x in ocr_text.splitlines() if x.strip()]
-
-# ---------- Build exam ----------
-st.subheader("3️⃣ Check Exam")
-
-if st.button("🤖 Check Complete Exam", type="primary"):
-    if not student_name.strip():
-        st.warning("Enter the student name.")
-    elif not questions:
-        st.warning("Add or upload questions.")
-    elif len(questions) != len(answers):
-        st.error(
-            f"Questions = {len(questions)}, Answers = {len(answers)}. "
-            "They must match in this version."
-        )
-    elif len(questions) != len(marks):
-        st.error(
-            f"Questions = {len(questions)}, Mark values = {len(marks)}. "
-            "They must match."
-        )
     else:
-        exam_data = [
-            {
-                "number": i + 1,
-                "question": q,
-                "answer": a,
-                "max_marks": m,
-            }
-            for i, (q, a, m) in enumerate(zip(questions, answers, marks))
-        ]
-
-        with st.spinner("CrewAI examiner is checking the exam..."):
+        uploaded_pdf = st.file_uploader("Upload Question Paper PDF", type=["pdf"])
+        if uploaded_pdf:
             try:
-                examiner = create_exam_checker()
-                task = create_exam_task(
-                    examiner,
-                    subject,
-                    exam_data,
-                    use_web_research=use_web_research
+                reader = PdfReader(uploaded_pdf)
+                pdf_text = "\n".join(page.extract_text() or "" for page in reader.pages)
+                st.text_area("Extracted Question Paper Text", pdf_text, height=250)
+
+                st.warning(
+                    "PDF extraction works for text-based PDFs. Scanned/handwritten PDFs "
+                    "need the OCR/image mode below."
                 )
 
-                from crewai import Crew
-                crew = Crew(agents=[examiner], tasks=[task], verbose=False)
-                result = crew.kickoff()
+                # Group lines by numbered question marker (1., 2., ...) so a
+                # question's options / wrapped lines aren't counted separately.
+                questions = extract_numbered_items(pdf_text)
 
-                st.session_state.exam_result = {
-                    "raw": result.raw,
-                    "exam_data": exam_data,
-                    "student": student_name,
-                    "subject": subject,
-                    "pass_percentage": pass_percentage,
-                }
+                marks_text = st.text_area(
+                    "Maximum marks (one per extracted question)",
+                    placeholder="5\n5\n10",
+                    height=120
+                )
+                try:
+                    marks = [float(x.strip()) for x in marks_text.splitlines() if x.strip()]
+                except ValueError:
+                    marks = []
 
-                st.success("✅ Exam checked.")
             except Exception as e:
-                st.error(f"Exam checking error: {e}")
+                st.error(f"Could not read PDF: {e}")
+
+# ---------- Student answer sheet ----------
+with st.container(border=True):
+    step_header("2", "Student Answer Sheet")
+    answer_mode = st.radio(
+        "Choose answer input",
+        ["Paste/Type Answers", "Upload Answer Sheet PDF", "Upload Answer Sheet Image"],
+        horizontal=True
+    )
+
+    if answer_mode == "Paste/Type Answers":
+        answers_text = st.text_area(
+            "Student answers (one answer per line, same order as questions)",
+            placeholder="Photosynthesis is...\nRespiration is...",
+            height=240
+        )
+        answers = [x.strip() for x in answers_text.splitlines() if x.strip()]
+
+    elif answer_mode == "Upload Answer Sheet PDF":
+        answer_pdf = st.file_uploader("Upload Student Answer Sheet PDF", type=["pdf"], key="answer_pdf")
+        if answer_pdf:
+            try:
+                reader = PdfReader(answer_pdf)
+                extracted = "\n".join(page.extract_text() or "" for page in reader.pages)
+                st.text_area("Extracted Answer Sheet Text", extracted, height=250)
+                # Group lines by numbered marker so each answer sheet item lines
+                # up 1:1 with the corresponding numbered question.
+                answers = extract_numbered_items(extracted)
+                st.warning(
+                    "Text extraction is available for text PDFs. For handwriting, use the image "
+                    "OCR option or provide a typed answer."
+                )
+            except Exception as e:
+                st.error(f"Could not read answer PDF: {e}")
+
+    else:
+        answer_image = st.file_uploader(
+            "Upload answer-sheet image",
+            type=["png", "jpg", "jpeg"],
+            key="answer_image"
+        )
+        if answer_image:
+            st.image(answer_image, caption="Uploaded answer sheet", use_container_width=True)
+            st.warning(
+                "Image OCR uses Gemini vision. If your current Gemini account/model does not "
+                "support image input, type/paste the answers instead."
+            )
+            if st.button("🔎 Extract Answers with AI OCR"):
+                from ocr import extract_answers_from_image
+                with st.spinner("Reading the answer sheet..."):
+                    try:
+                        extracted = extract_answers_from_image(answer_image.getvalue())
+                        st.session_state.ocr_text = extracted
+                        st.success("OCR extraction completed.")
+                    except Exception as e:
+                        st.error(f"OCR error: {e}")
+
+            ocr_text = st.text_area(
+                "OCR text / corrected answers",
+                value=st.session_state.get("ocr_text", ""),
+                height=220
+            )
+            answers = [x.strip() for x in ocr_text.splitlines() if x.strip()]
+
+# ---------- Build exam ----------
+with st.container(border=True):
+    step_header("3", "Check Exam")
+
+    if st.button("🤖 Check Complete Exam", type="primary"):
+        if not student_name.strip():
+            st.warning("Enter the student name.")
+        elif not questions:
+            st.warning("Add or upload questions.")
+        elif len(questions) != len(answers):
+            st.error(
+                f"Questions = {len(questions)}, Answers = {len(answers)}. "
+                "They must match in this version."
+            )
+        elif len(questions) != len(marks):
+            st.error(
+                f"Questions = {len(questions)}, Mark values = {len(marks)}. "
+                "They must match."
+            )
+        else:
+            exam_data = [
+                {
+                    "number": i + 1,
+                    "question": q,
+                    "answer": a,
+                    "max_marks": m,
+                }
+                for i, (q, a, m) in enumerate(zip(questions, answers, marks))
+            ]
+
+            with st.spinner("CrewAI examiner is checking the exam..."):
+                try:
+                    examiner = create_exam_checker()
+                    task = create_exam_task(
+                        examiner,
+                        subject,
+                        exam_data,
+                        use_web_research=use_web_research
+                    )
+
+                    from crewai import Crew
+                    crew = Crew(agents=[examiner], tasks=[task], verbose=False)
+                    result = crew.kickoff()
+
+                    st.session_state.exam_result = {
+                        "raw": result.raw,
+                        "exam_data": exam_data,
+                        "student": student_name,
+                        "subject": subject,
+                        "pass_percentage": pass_percentage,
+                    }
+
+                    st.success("✅ Exam checked.")
+                except Exception as e:
+                    st.error(f"Exam checking error: {e}")
 
 # ---------- Results ----------
 data = st.session_state.exam_result
 if data:
     st.divider()
-    st.subheader("4️⃣ AI Question-by-Question Result")
-    st.write(data["raw"])
+
+    with st.container(border=True):
+        step_header("4", "AI Question-by-Question Result")
+        st.write(data["raw"])
 
     parsed = parse_ai_results(data["raw"], data["exam_data"])
 
-    st.subheader("5️⃣ Teacher Review / Final Marks")
-    st.caption("Edit any AI mark below. The final result uses these teacher-approved marks.")
+    with st.container(border=True):
+        step_header("5", "Teacher Review / Final Marks")
+        st.caption("Edit any AI mark below. The final result uses these teacher-approved marks.")
 
-    final_rows = []
-    for item in parsed:
-        qn = item["number"]
-        ai_mark = item["earned"]
-        max_mark = item["max_marks"]
+        final_rows = []
+        for item in parsed:
+            qn = item["number"]
+            ai_mark = item["earned"]
+            max_mark = item["max_marks"]
 
-        default = st.session_state.final_marks.get(qn, ai_mark)
-        final = st.number_input(
-            f"Question {qn} — Final Marks (max {max_mark:g})",
-            min_value=0.0,
-            max_value=float(max_mark),
-            value=min(float(default), float(max_mark)),
-            step=0.5,
-            key=f"final_mark_{qn}"
-        )
-        st.session_state.final_marks[qn] = final
-        final_rows.append({
-            "Question": qn,
-            "AI Marks": ai_mark,
-            "Final Marks": final,
-            "Maximum": max_mark,
-            "Feedback": item["feedback"],
-            "Missing Points": item["missing"],
-        })
+            default = st.session_state.final_marks.get(qn, ai_mark)
+            final = st.number_input(
+                f"Question {qn} — Final Marks (max {max_mark:g})",
+                min_value=0.0,
+                max_value=float(max_mark),
+                value=min(float(default), float(max_mark)),
+                step=0.5,
+                key=f"final_mark_{qn}"
+            )
+            st.session_state.final_marks[qn] = final
+            final_rows.append({
+                "Question": qn,
+                "AI Marks": ai_mark,
+                "Final Marks": final,
+                "Maximum": max_mark,
+                "Feedback": item["feedback"],
+                "Missing Points": item["missing"],
+            })
 
     final_earned = sum(r["Final Marks"] for r in final_rows)
     maximum = sum(r["Maximum"] for r in final_rows)
     percentage, grade, passed = calculate_result(final_earned, maximum, data["pass_percentage"])
 
-    st.subheader("📊 Final Result")
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Marks", f"{final_earned:g}/{maximum:g}")
-    c2.metric("Percentage", f"{percentage:.2f}%")
-    c3.metric("Grade", grade)
-    c4.metric("Status", "PASS" if passed else "FAIL")
+    with st.container(border=True):
+        step_header("📊", "Final Result")
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Marks", f"{final_earned:g}/{maximum:g}")
+        c2.metric("Percentage", f"{percentage:.2f}%")
+        c3.metric("Grade", grade)
+        c4.metric("Status", "PASS" if passed else "FAIL")
 
-    df = pd.DataFrame(final_rows)
-    st.dataframe(df, use_container_width=True, hide_index=True)
+        df = pd.DataFrame(final_rows)
+        st.dataframe(df, use_container_width=True, hide_index=True)
 
-    # Review agent is optional and only used for final review summary.
-    if st.button("🧑‍🏫 Generate Teacher Review Summary"):
-        with st.spinner("Generating review summary..."):
-            try:
-                reviewer = create_review_agent()
-                review_task = create_review_task(
-                    reviewer,
-                    data["student"],
-                    data["subject"],
-                    final_rows,
-                    final_earned,
-                    maximum,
-                    percentage,
-                    grade,
-                    passed,
-                )
-                from crewai import Crew
-                review_crew = Crew(
-                    agents=[reviewer],
-                    tasks=[review_task],
-                    verbose=False
-                )
-                review = review_crew.kickoff()
-                st.session_state.review_summary = review.raw
-            except Exception as e:
-                st.error(f"Review error: {e}")
+        # Review agent is optional and only used for final review summary.
+        if st.button("🧑‍🏫 Generate Teacher Review Summary"):
+            with st.spinner("Generating review summary..."):
+                try:
+                    reviewer = create_review_agent()
+                    review_task = create_review_task(
+                        reviewer,
+                        data["student"],
+                        data["subject"],
+                        final_rows,
+                        final_earned,
+                        maximum,
+                        percentage,
+                        grade,
+                        passed,
+                    )
+                    from crewai import Crew
+                    review_crew = Crew(
+                        agents=[reviewer],
+                        tasks=[review_task],
+                        verbose=False
+                    )
+                    review = review_crew.kickoff()
+                    st.session_state.review_summary = review.raw
+                except Exception as e:
+                    st.error(f"Review error: {e}")
 
-    if st.session_state.get("review_summary"):
-        st.subheader("🧑‍🏫 Teacher Review Summary")
-        st.write(st.session_state.review_summary)
+        if st.session_state.get("review_summary"):
+            st.subheader("🧑‍🏫 Teacher Review Summary")
+            st.write(st.session_state.review_summary)
 
-    st.subheader("6️⃣ Export")
-    col1, col2 = st.columns(2)
+    with st.container(border=True):
+        step_header("6", "Export")
+        col1, col2 = st.columns(2)
 
-    excel_bytes = make_excel(
-        student=data["student"],
-        subject=data["subject"],
-        rows=final_rows,
-        earned=final_earned,
-        maximum=maximum,
-        percentage=percentage,
-        grade=grade,
-        passed=passed,
-    )
-
-    pdf_bytes = make_pdf(
-        student=data["student"],
-        subject=data["subject"],
-        rows=final_rows,
-        earned=final_earned,
-        maximum=maximum,
-        percentage=percentage,
-        grade=grade,
-        passed=passed,
-    )
-
-    with col1:
-        st.download_button(
-            "📊 Download Excel Result",
-            data=excel_bytes,
-            file_name=f"{student_name}_result.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        excel_bytes = make_excel(
+            student=data["student"],
+            subject=data["subject"],
+            rows=final_rows,
+            earned=final_earned,
+            maximum=maximum,
+            percentage=percentage,
+            grade=grade,
+            passed=passed,
         )
-    with col2:
-        st.download_button(
-            "📄 Download PDF Result",
-            data=pdf_bytes,
-            file_name=f"{student_name}_result.pdf",
-            mime="application/pdf"
+
+        pdf_bytes = make_pdf(
+            student=data["student"],
+            subject=data["subject"],
+            rows=final_rows,
+            earned=final_earned,
+            maximum=maximum,
+            percentage=percentage,
+            grade=grade,
+            passed=passed,
         )
+
+        with col1:
+            st.download_button(
+                "📊 Download Excel Result",
+                data=excel_bytes,
+                file_name=f"{student_name}_result.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+        with col2:
+            st.download_button(
+                "📄 Download PDF Result",
+                data=pdf_bytes,
+                file_name=f"{student_name}_result.pdf",
+                mime="application/pdf"
+            )
 
     st.divider()
     st.caption(
