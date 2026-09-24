@@ -1,110 +1,34 @@
 from crewai import Task
 
 
-def create_exam_task(agent, question, student_answer, max_marks):
-
-    task = Task(
-        description=f"""
-You are a college mathematics examiner.
-
-Check the student's mathematics answer carefully.
-
-QUESTION:
-{question}
-
-STUDENT ANSWER:
-{student_answer}
-
-MAXIMUM MARKS:
-{max_marks}
-
-IMPORTANT INSTRUCTIONS:
-
-1. Identify each individual math question in the input.
-
-2. Check each question separately.
-
-3. For every question:
-   - Determine the correct mathematical answer.
-   - Compare it with the student's answer.
-   - Check the student's calculation and working steps.
-   - Identify calculation mistakes.
-   - Give appropriate marks.
-
-4. Give partial marks when:
-   - The method is correct but there is a calculation error.
-   - Some important steps are correct but the final answer is wrong.
-
-5. Give zero marks when the solution is completely incorrect
-   or unrelated.
-
-6. Never give more than the maximum available marks.
-
-7. Do not assume steps that the student did not write.
-
-8. Clearly show the correct answer when the student's answer is wrong.
-
-9. At the end, calculate the total marks.
-
-10. If the student's working is unclear or difficult to judge,
-    write "Teacher Review Recommended."
-
-RETURN THE RESULT IN THIS FORMAT:
-
-Question 1:
-Student Answer:
-Correct Answer:
-Marks:
-Mistake/Explanation:
-
-Question 2:
-Student Answer:
-Correct Answer:
-Marks:
-Mistake/Explanation:
-
-Question 3:
-Student Answer:
-Correct Answer:
-Marks:
-Mistake/Explanation:
-
-Continue this format for all questions.
-
-TOTAL:
-Total Marks:
-
-OVERALL FEEDBACK:
-Brief explanation of the student's performance.
-
-TEACHER REVIEW:
-Yes or No
-""",
-
-        expected_output="""
-Question 1:
-Student Answer:
-Correct Answer:
-Marks:
-Mistake/Explanation:
-
-Question 2:
-Student Answer:
-Correct Answer:
-Marks:
-Mistake/Explanation:
-
-TOTAL:
-Total Marks:
-
-OVERALL FEEDBACK:
-Brief explanation.
-
-TEACHER REVIEW:
-Yes or No
-""",
-
-        agent=agent
+def create_exam_task(agent, subject, exam_data, use_web_research=False):
+    exam_text = "\n\n".join(
+        f""" QUESTION {x["number"]}: {x["question"]} STUDENT ANSWER: {x["answer"]} MAXIMUM MARKS: {x["max_marks"]} """
+        for x in exam_data
     )
 
-    return task
+    web_note = ""
+    if use_web_research:
+        web_note = """ Optional reference research may be used when appropriate, but do not replace the teacher-provided question/marking information with unsupported web claims. """
+
+    return Task(
+        description=f""" Check this college exam. SUBJECT: {subject} {exam_text} GENERAL RULES: - Check every question separately. - Never exceed the maximum marks. - Give partial marks when justified. - Base the decision on the student's actual answer. - Do not invent steps. - Explain errors and missing points. - If handwriting/OCR or wording makes an answer uncertain, say Teacher Review Recommended. SUBJECT RULES: Mathematics: Check formulas, calculations, working steps, and final answers. A correct method with an arithmetic error may receive partial credit. Physics/Chemistry: Check formulas, units, equations, calculations, concepts, and final answers. Biology/English: Check correctness, concepts/content, relevance, completeness, explanation, grammar or structure where relevant. Computer Science: Check logic, code, syntax, output, concepts, and explanation. {web_note} OUTPUT FORMAT: Question 1: Student Answer: ... Correct Answer / Expected Answer: ... Marks: X/Y Feedback: ... Missing Points: ... Question 2: Student Answer: ... Correct Answer / Expected Answer: ... Marks: X/Y Feedback: ... Missing Points: ... Continue for every question. TEACHER REVIEW: Yes or No """,
+        expected_output=""" Question N: Student Answer: ... Correct Answer / Expected Answer: ... Marks: X/Y Feedback: ... Missing Points: ... TEACHER REVIEW: Yes or No """,
+        agent=agent,
+    )
+
+
+def create_question_analysis_task(agent, subject, questions):
+    return Task(
+        description=f""" Analyze these {subject} exam questions and describe the key concepts, expected answer points, formulas/steps where applicable, and likely marking considerations. Do not assign final student marks. QUESTIONS: {questions} """,
+        expected_output="A concise question-by-question marking guide.",
+        agent=agent,
+    )
+
+
+def create_review_task( agent, student, subject, rows, earned, maximum, percentage, grade, passed, ):
+    return Task(
+        description=f""" Prepare a teacher review summary. Student: {student} Subject: {subject} Final marks: {earned}/{maximum} Percentage: {percentage:.2f}% Grade: {grade} Status: {"PASS" if passed else "FAIL"} QUESTION RESULTS: {rows} Summarize: 1. Overall strengths 2. Common mistakes 3. Questions needing attention 4. A short teacher note Do not change or recommend a different final mark. """,
+        expected_output="A short teacher-facing review summary.",
+        agent=agent,
+    )
