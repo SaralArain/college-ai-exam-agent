@@ -16,7 +16,16 @@ st.caption("AI-assisted college exam checking with teacher-controlled final mark
 st.info("AI marks are recommendations. The teacher should review and approve final marks.")
 
 def extract_numbered_items(text: str) -> list[str]:
-    """Group extracted PDF text into one item per numbered question/answer. Text-based PDF extraction returns one line per visual line, so a single question with multiple answer options (or a title/subtitle line) would otherwise be miscounted as several separate items. This groups every line under the numbered marker it belongs to (e.g. "1.", "2)") until the next numbered marker appears, so options/wrapped lines stay attached to their question. Lines before the first numbered marker (titles, instructions, student name/ID headers) are dropped. """
+    """Group extracted PDF text into one item per numbered question/answer.
+
+    Text-based PDF extraction returns one line per visual line, so a single
+    question with multiple answer options (or a title/subtitle line) would
+    otherwise be miscounted as several separate items. This groups every
+    line under the numbered marker it belongs to (e.g. "1.", "2)") until the
+    next numbered marker appears, so options/wrapped lines stay attached to
+    their question. Lines before the first numbered marker (titles,
+    instructions, student name/ID headers) are dropped.
+    """
     lines = [line.strip() for line in text.splitlines() if line.strip()]
     marker = re.compile(r"^(\d{1,3})[\.\)]\s+")
 
@@ -322,7 +331,7 @@ if data:
     col1, col2 = st.columns(2)
 
     excel_bytes = make_excel(
-        student_name=data["student"],
+        student=data["student"],
         subject=data["subject"],
         rows=final_rows,
         earned=final_earned,
@@ -333,7 +342,7 @@ if data:
     )
 
     pdf_bytes = make_pdf(
-        student_name=data["student"],
+        student=data["student"],
         subject=data["subject"],
         rows=final_rows,
         earned=final_earned,
