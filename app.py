@@ -11,6 +11,125 @@ from exports import make_excel, make_pdf
 
 st.set_page_config(page_title="AI Agent Exam Checker", page_icon="🎓", layout="wide")
 
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap');
+
+:root {
+    --neon: #00e5ff;
+    --neon-soft: #38bdf8;
+    --neon-glow: rgba(0, 229, 255, 0.35);
+    --bg-deep: #060b16;
+    --bg-panel: #0d1524;
+    --bg-card: rgba(17, 26, 43, 0.75);
+    --border-glow: rgba(0, 229, 255, 0.25);
+    --text-main: #e6f6ff;
+    --text-dim: #8fa4c0;
+}
+
+html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
+h1, h2, h3, h4, .stMarkdown h3 { font-family: 'Space Grotesk', sans-serif; }
+
+.stApp {
+    background: radial-gradient(circle at 15% 0%, #0b1c33 0%, var(--bg-deep) 45%, #030509 100%);
+    color: var(--text-main);
+}
+
+/* Title */
+.stApp h1 {
+    background: linear-gradient(90deg, #00e5ff 0%, #7c5cff 50%, #00e5ff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-shadow: 0 0 30px var(--neon-glow);
+}
+
+.stCaption, .stApp p, .stMarkdown, label { color: var(--text-dim) !important; }
+
+/* Sidebar */
+section[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #0a1220 0%, #060b16 100%);
+    border-right: 1px solid var(--border-glow);
+}
+section[data-testid="stSidebar"] h2, section[data-testid="stSidebar"] h1 {
+    color: var(--neon) !important;
+    text-shadow: 0 0 12px var(--neon-glow);
+}
+
+/* Subheaders as glowing section markers */
+.stApp h3 {
+    color: var(--text-main);
+    border-left: 3px solid var(--neon);
+    padding-left: 12px;
+    text-shadow: 0 0 10px rgba(0,229,255,0.15);
+}
+
+/* Cards: text areas, inputs, uploaders, dataframes */
+.stTextArea textarea, .stTextInput input, .stNumberInput input, .stSelectbox div[data-baseweb="select"] {
+    background-color: var(--bg-panel) !important;
+    color: var(--text-main) !important;
+    border: 1px solid var(--border-glow) !important;
+    border-radius: 10px !important;
+}
+.stTextArea textarea:focus, .stTextInput input:focus, .stNumberInput input:focus {
+    box-shadow: 0 0 0 2px var(--neon) !important;
+    border-color: var(--neon) !important;
+}
+
+[data-testid="stFileUploaderDropzone"] {
+    background: var(--bg-card) !important;
+    border: 1.5px dashed var(--border-glow) !important;
+    border-radius: 14px !important;
+}
+
+/* Buttons */
+.stButton button, .stDownloadButton button {
+    background: linear-gradient(135deg, #00c2ff 0%, #6a5cff 100%) !important;
+    color: #04101f !important;
+    font-weight: 600 !important;
+    border: none !important;
+    border-radius: 10px !important;
+    box-shadow: 0 0 18px rgba(0, 194, 255, 0.35);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.stButton button:hover, .stDownloadButton button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0 26px rgba(0, 229, 255, 0.55);
+}
+
+/* Radio / segmented controls */
+div[role="radiogroup"] label {
+    background: var(--bg-card);
+    border: 1px solid var(--border-glow);
+    border-radius: 8px;
+    padding: 4px 12px;
+    margin-right: 6px;
+}
+
+/* Metrics */
+[data-testid="stMetric"] {
+    background: var(--bg-card);
+    border: 1px solid var(--border-glow);
+    border-radius: 14px;
+    padding: 14px 10px;
+    box-shadow: 0 0 20px rgba(0, 229, 255, 0.08);
+}
+[data-testid="stMetricValue"] { color: var(--neon) !important; text-shadow: 0 0 10px var(--neon-glow); }
+[data-testid="stMetricLabel"] { color: var(--text-dim) !important; }
+
+/* Alerts */
+.stAlert { border-radius: 12px !important; border: 1px solid var(--border-glow) !important; }
+
+/* Dataframe */
+[data-testid="stDataFrame"] { border: 1px solid var(--border-glow); border-radius: 12px; overflow: hidden; }
+
+/* Divider */
+hr { border-color: var(--border-glow) !important; }
+</style>
+""", unsafe_allow_html=True)
+
 st.title("🎓 AI Agent Exam Checker")
 st.caption("AI-assisted college exam checking with teacher-controlled final marks.")
 st.info("AI marks are recommendations. The teacher should review and approve final marks.")
