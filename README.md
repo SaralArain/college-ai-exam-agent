@@ -1,4 +1,4 @@
-# 🎓 College AI Exam Checker — Full Build
+# 🎓 AI Agent Exam Checker — Full Build
 
 ## Architecture
 
