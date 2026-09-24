@@ -1,3 +1,9 @@
 streamlit
 crewai[google-genai]
 crewai-tools
+google-genai
+pypdf
+pandas
+openpyxl
+reportlab
+Pillow
