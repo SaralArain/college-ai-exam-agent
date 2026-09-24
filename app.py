@@ -9,9 +9,9 @@ from tasks import create_exam_task, create_question_analysis_task, create_review
 from result_engine import calculate_result, parse_ai_results
 from exports import make_excel, make_pdf
 
-st.set_page_config(page_title="College AI Exam Checker", page_icon="🎓", layout="wide")
+st.set_page_config(page_title="AI Agent Exam Checker", page_icon="🎓", layout="wide")
 
-st.title("🎓 College AI Exam Checker")
+st.title("🎓 AI Agent Exam Checker")
 st.caption("AI-assisted college exam checking with teacher-controlled final marks.")
 st.info("AI marks are recommendations. The teacher should review and approve final marks.")
 
