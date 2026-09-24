@@ -41,7 +41,7 @@ h1, h2, h3, h4, .stMarkdown h3 { font-family: 'Space Grotesk', sans-serif; }
 
 /* Title */
 .stApp h1 {
-    background: linear-gradient(90deg, #00e5ff 0%, #7c5cff 50%, #00e5ff 100%);
+    background: linear-gradient(90deg, #00e5ff 0%, #7c5cff 35%, #ff5cf0 65%, #00e5ff 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -175,6 +175,21 @@ div[data-baseweb="checkbox"] > div:first-child { border-color: var(--neon-soft) 
 [data-testid="stMetricValue"] { color: var(--neon) !important; text-shadow: 0 0 10px var(--neon-glow); }
 [data-testid="stMetricLabel"] { color: var(--text-dim) !important; }
 
+/* Result cards: color-coded by meaning (pass/fail/grade) instead of one flat blue */
+.metric-card {
+    background: rgba(255,255,255,0.03); border: 1px solid var(--border-glow);
+    border-radius: 14px; padding: 14px 10px; text-align: center;
+}
+.metric-card .val { font-family: 'Space Grotesk', sans-serif; font-size: 1.3rem; font-weight: 700; }
+.metric-card .lab { font-size: 0.75rem; color: var(--text-dim); margin-top: 4px; }
+.metric-card.blue .val { color: var(--neon); text-shadow: 0 0 10px var(--neon-glow); }
+.metric-card.gold { border-color: rgba(255, 196, 0, 0.45); box-shadow: 0 0 20px rgba(255, 196, 0, 0.22); }
+.metric-card.gold .val { color: #ffc400; text-shadow: 0 0 10px rgba(255, 196, 0, 0.4); }
+.metric-card.pass { border-color: rgba(0, 230, 150, 0.5); box-shadow: 0 0 20px rgba(0, 230, 150, 0.25); }
+.metric-card.pass .val { color: #00e696; text-shadow: 0 0 10px rgba(0, 230, 150, 0.4); }
+.metric-card.fail { border-color: rgba(255, 64, 129, 0.5); box-shadow: 0 0 20px rgba(255, 64, 129, 0.25); }
+.metric-card.fail .val { color: #ff4081; text-shadow: 0 0 10px rgba(255, 64, 129, 0.4); }
+
 /* Alerts: distinct, high-contrast colors per type instead of default olive/beige */
 .stAlert { border-radius: 12px !important; }
 div[data-testid*="Warning"] {
@@ -204,12 +219,21 @@ hr { border-color: var(--border-glow) !important; }
 """, unsafe_allow_html=True)
 
 
-def step_header(number: str, title: str) -> None:
+def step_header(number: str, title: str, gradient: str = "linear-gradient(135deg, var(--neon), var(--neon2))") -> None:
     """Render a gradient number badge + title, matching the approved mockup."""
     st.markdown(
-        f'<div class="step-header"><div class="step-num">{number}</div><h3>{title}</h3></div>',
+        f'<div class="step-header"><div class="step-num" style="background:{gradient}">{number}</div><h3>{title}</h3></div>',
         unsafe_allow_html=True,
     )
+
+
+# Distinct accent gradients per section, so each step reads as its own zone
+GRAD_BLUE = "linear-gradient(135deg, #00e5ff, #7c5cff)"       # Exam Input
+GRAD_PURPLE = "linear-gradient(135deg, #7c5cff, #ff5cf0)"     # Answer Sheet
+GRAD_PINK = "linear-gradient(135deg, #ff5cf0, #ff8a65)"       # Check Exam
+GRAD_CYAN = "linear-gradient(135deg, #00e5ff, #00e696)"       # AI Result
+GRAD_VIOLET = "linear-gradient(135deg, #7c5cff, #00e5ff)"     # Teacher Review
+GRAD_TEAL = "linear-gradient(135deg, #00e696, #00c2ff)"       # Export
 
 
 st.title("🎓 AI Agent Exam Checker")
@@ -275,7 +299,7 @@ answers = []
 
 # ---------- Input mode ----------
 with st.container(border=True):
-    step_header("1", "Exam Input")
+    step_header("1", "Exam Input", GRAD_BLUE)
     input_mode = st.radio(
         "Choose input method",
         ["Manual Questions", "Upload Question Paper PDF"],
@@ -332,7 +356,7 @@ with st.container(border=True):
 
 # ---------- Student answer sheet ----------
 with st.container(border=True):
-    step_header("2", "Student Answer Sheet")
+    step_header("2", "Student Answer Sheet", GRAD_PURPLE)
     answer_mode = st.radio(
         "Choose answer input",
         ["Paste/Type Answers", "Upload Answer Sheet PDF", "Upload Answer Sheet Image"],
@@ -395,7 +419,7 @@ with st.container(border=True):
 
 # ---------- Build exam ----------
 with st.container(border=True):
-    step_header("3", "Check Exam")
+    step_header("3", "Check Exam", GRAD_PINK)
 
     if st.button("🤖 Check Complete Exam", type="primary"):
         if not student_name.strip():
@@ -455,13 +479,13 @@ if data:
     st.divider()
 
     with st.container(border=True):
-        step_header("4", "AI Question-by-Question Result")
+        step_header("4", "AI Question-by-Question Result", GRAD_CYAN)
         st.write(data["raw"])
 
     parsed = parse_ai_results(data["raw"], data["exam_data"])
 
     with st.container(border=True):
-        step_header("5", "Teacher Review / Final Marks")
+        step_header("5", "Teacher Review / Final Marks", GRAD_VIOLET)
         st.caption("Edit any AI mark below. The final result uses these teacher-approved marks.")
 
         final_rows = []
@@ -494,12 +518,23 @@ if data:
     percentage, grade, passed = calculate_result(final_earned, maximum, data["pass_percentage"])
 
     with st.container(border=True):
-        step_header("📊", "Final Result")
+        step_header("📊", "Final Result", GRAD_CYAN)
         c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Marks", f"{final_earned:g}/{maximum:g}")
-        c2.metric("Percentage", f"{percentage:.2f}%")
-        c3.metric("Grade", grade)
-        c4.metric("Status", "PASS" if passed else "FAIL")
+        status_class = "pass" if passed else "fail"
+        status_text = "PASS" if passed else "FAIL"
+        cards = [
+            (c1, "blue", f"{final_earned:g}/{maximum:g}", "Marks"),
+            (c2, "blue", f"{percentage:.2f}%", "Percentage"),
+            (c3, "gold", grade, "Grade"),
+            (c4, status_class, status_text, "Status"),
+        ]
+        for col, cls, val, lab in cards:
+            with col:
+                st.markdown(
+                    f'<div class="metric-card {cls}"><div class="val">{val}</div>'
+                    f'<div class="lab">{lab}</div></div>',
+                    unsafe_allow_html=True,
+                )
 
         df = pd.DataFrame(final_rows)
         st.dataframe(df, use_container_width=True, hide_index=True)
@@ -536,7 +571,7 @@ if data:
             st.write(st.session_state.review_summary)
 
     with st.container(border=True):
-        step_header("6", "Export")
+        step_header("6", "Export", GRAD_TEAL)
         col1, col2 = st.columns(2)
 
         excel_bytes = make_excel(
