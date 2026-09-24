@@ -121,7 +121,15 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
     border: none !important;
     border-radius: 12px !important;
     box-shadow: 0 0 18px rgba(0, 194, 255, 0.35);
+    opacity: 1 !important;
     transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.stButton button *, .stDownloadButton button *,
+.stButton button p, .stDownloadButton button p,
+.stButton button span, .stDownloadButton button span,
+.stButton button div, .stDownloadButton button div {
+    color: #ffffff !important;
+    opacity: 1 !important;
 }
 .stButton button:hover, .stDownloadButton button:hover {
     transform: translateY(-1px);
