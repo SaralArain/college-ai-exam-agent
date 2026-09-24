@@ -15,6 +15,26 @@ st.title("🎓 College AI Exam Checker")
 st.caption("AI-assisted college exam checking with teacher-controlled final marks.")
 st.info("AI marks are recommendations. The teacher should review and approve final marks.")
 
+def extract_numbered_items(text: str) -> list[str]:
+    """Group extracted PDF text into one item per numbered question/answer. Text-based PDF extraction returns one line per visual line, so a single question with multiple answer options (or a title/subtitle line) would otherwise be miscounted as several separate items. This groups every line under the numbered marker it belongs to (e.g. "1.", "2)") until the next numbered marker appears, so options/wrapped lines stay attached to their question. Lines before the first numbered marker (titles, instructions, student name/ID headers) are dropped. """
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    marker = re.compile(r"^(\d{1,3})[\.\)]\s+")
+
+    items = []
+    current = []
+    for line in lines:
+        if marker.match(line):
+            if current:
+                items.append(" ".join(current).strip())
+            current = [line]
+        elif current:
+            current.append(line)
+        # else: header/title text before the first numbered item — discard
+    if current:
+        items.append(" ".join(current).strip())
+    return items
+
+
 if "exam_result" not in st.session_state:
     st.session_state.exam_result = None
 if "final_marks" not in st.session_state:
@@ -80,8 +100,9 @@ else:
                 "need the OCR/image mode below."
             )
 
-            # Simple question-per-line fallback.
-            questions = [x.strip() for x in pdf_text.splitlines() if x.strip()]
+            # Group lines by numbered question marker (1., 2., ...) so a
+            # question's options / wrapped lines aren't counted separately.
+            questions = extract_numbered_items(pdf_text)
 
             marks_text = st.text_area(
                 "Maximum marks (one per extracted question)",
@@ -121,7 +142,9 @@ elif answer_mode == "Upload Answer Sheet PDF":
             reader = PdfReader(answer_pdf)
             extracted = "\n".join(page.extract_text() or "" for page in reader.pages)
             st.text_area("Extracted Answer Sheet Text", extracted, height=250)
-            answers = [x.strip() for x in extracted.splitlines() if x.strip()]
+            # Group lines by numbered marker so each answer sheet item lines
+            # up 1:1 with the corresponding numbered question.
+            answers = extract_numbered_items(extracted)
             st.warning(
                 "Text extraction is available for text PDFs. For handwriting, use the image "
                 "OCR option or provide a typed answer."
