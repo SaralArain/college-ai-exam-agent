@@ -404,7 +404,10 @@ with st.container(border=True):
                 from ocr import extract_answers_from_image
                 with st.spinner("Reading the answer sheet..."):
                     try:
-                        extracted = extract_answers_from_image(answer_image.getvalue())
+                        extracted = extract_answers_from_image(
+                            answer_image.getvalue(),
+                            mime_type=answer_image.type or "image/jpeg",
+                        )
                         st.session_state.ocr_text = extracted
                         st.success("OCR extraction completed.")
                     except Exception as e:
@@ -415,7 +418,9 @@ with st.container(border=True):
                 value=st.session_state.get("ocr_text", ""),
                 height=220
             )
-            answers = [x.strip() for x in ocr_text.splitlines() if x.strip()]
+            # Group by numbered marker, same as the PDF paths, so a multi-line
+            # handwritten answer under "5." stays one answer instead of splitting.
+            answers = extract_numbered_items(ocr_text)
 
 # ---------- Build exam ----------
 with st.container(border=True):
