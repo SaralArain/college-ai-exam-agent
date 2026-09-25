@@ -213,6 +213,20 @@ div[data-testid*="Info"] {
 /* Dataframe */
 [data-testid="stDataFrame"] { border: 1px solid var(--border-glow); border-radius: 12px; overflow: hidden; }
 
+/* Question result cards (Step 4) */
+.qcard {
+    background: rgba(255,255,255,0.03); border: 1px solid var(--border-glow);
+    border-radius: 14px; padding: 14px 16px; margin-bottom: 12px;
+}
+.qcard .qhead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.qcard .qtitle { font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 0.95rem; color: var(--text-main); display: flex; align-items: center; gap: 8px; }
+.qcard .marks { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 0.95rem; color: var(--text-main); }
+.qbadge { font-size: 0.75rem; padding: 3px 10px; border-radius: 999px; font-weight: 600; }
+.qbadge.full { background: rgba(0, 230, 150, 0.15); color: #00e696; }
+.qbadge.partial { background: rgba(255, 176, 32, 0.15); color: #ffb020; }
+.qbadge.zero { background: rgba(255, 64, 129, 0.15); color: #ff4081; }
+.qcard .qfeedback { font-size: 0.85rem; color: var(--text-dim); margin-top: 4px; line-height: 1.5; }
+
 /* Divider */
 hr { border-color: var(--border-glow) !important; }
 </style>
@@ -483,11 +497,43 @@ data = st.session_state.exam_result
 if data:
     st.divider()
 
+    parsed = parse_ai_results(data["raw"], data["exam_data"])
+    exam_by_number = {item["number"]: item for item in data["exam_data"]}
+
     with st.container(border=True):
         step_header("4", "AI Question-by-Question Result", GRAD_CYAN)
-        st.write(data["raw"])
 
-    parsed = parse_ai_results(data["raw"], data["exam_data"])
+        for item in parsed:
+            qn = item["number"]
+            earned = item["earned"]
+            max_marks = item["max_marks"]
+            feedback = item["feedback"] or "—"
+            missing = item["missing"] or "None"
+
+            if earned <= 0:
+                status_cls, status_label = "zero", "Zero"
+            elif earned >= max_marks - 1e-9:
+                status_cls, status_label = "full", "Full marks"
+            else:
+                status_cls, status_label = "partial", "Partial"
+
+            st.markdown(
+                f'<div class="qcard">'
+                f'<div class="qhead">'
+                f'<div class="qtitle">Q{qn} <span class="qbadge {status_cls}">{status_label}</span></div>'
+                f'<div class="marks">{earned:g} / {max_marks:g}</div>'
+                f'</div>'
+                f'<div class="qfeedback"><b>Feedback:</b> {feedback}</div>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+            with st.expander(f"Show answer details — Q{qn}"):
+                student_answer = exam_by_number.get(qn, {}).get("answer", "—")
+                st.markdown(f"**Student's Answer:** {student_answer}")
+                st.markdown(f"**Missing Points:** {missing}")
+
+        with st.expander("Show raw AI response (full text)"):
+            st.text(data["raw"])
 
     with st.container(border=True):
         step_header("5", "Teacher Review / Final Marks", GRAD_VIOLET)
