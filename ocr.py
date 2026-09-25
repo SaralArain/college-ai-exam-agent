@@ -3,7 +3,7 @@ from google import genai
 from google.genai import types
 
 
-def extract_answers_from_image(image_bytes):
+def extract_answers_from_image(image_bytes, mime_type="image/jpeg"):
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
         # Streamlit secrets are not environment variables by default.
@@ -24,8 +24,15 @@ If handwriting is unclear, write [UNCLEAR].
     response = client.models.generate_content(
         model="gemini-3.5-flash-lite",
         contents=[
-            types.Part.from_bytes(data=image_bytes, mime_type="image/jpeg"),
+            types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
             prompt,
         ],
     )
-    return response.text
+
+    text = (response.text or "").strip()
+    if not text:
+        raise ValueError(
+            "Gemini returned no text for this image. The image may be unreadable, "
+            "blank, or blocked by safety filtering."
+        )
+    return text
