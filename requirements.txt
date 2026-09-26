@@ -7,3 +7,4 @@ pandas
 openpyxl
 reportlab
 Pillow
+python-docx
