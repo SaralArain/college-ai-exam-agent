@@ -326,17 +326,42 @@ with st.container(border=True):
             placeholder="1. What is photosynthesis?\n2. Explain respiration.",
             height=180
         )
-        marks_text = st.text_area(
-            "Maximum marks (one per line, same order)",
-            placeholder="5\n10",
-            height=120
+        questions = [x.strip() for x in questions_text.splitlines() if x.strip()]
+
+        st.caption("Maximum marks")
+        marks_method = st.radio(
+            "Marks entry method",
+            ["Same for all", "Total ÷ split", "Table"],
+            horizontal=True,
+            key="manual_marks_method",
+            label_visibility="collapsed"
         )
 
-        questions = [x.strip() for x in questions_text.splitlines() if x.strip()]
-        try:
-            marks = [float(x.strip()) for x in marks_text.splitlines() if x.strip()]
-        except ValueError:
-            marks = []
+        marks = []
+        if not questions:
+            st.caption("Add questions above to set their marks.")
+        elif marks_method == "Same for all":
+            same_val = st.number_input(
+                "Marks per question", min_value=0.0, value=2.0, step=0.5,
+                key="manual_same_marks"
+            )
+            marks = [same_val] * len(questions)
+        elif marks_method == "Total ÷ split":
+            total_val = st.number_input(
+                "Total marks for this paper", min_value=0.0,
+                value=float(len(questions) * 2), step=0.5, key="manual_total_marks"
+            )
+            per_q = total_val / len(questions) if questions else 0
+            marks = [round(per_q, 2)] * len(questions)
+            st.caption(f"{total_val:g} ÷ {len(questions)} questions ≈ {per_q:.2f} each.")
+        else:  # Table
+            for i, q in enumerate(questions):
+                preview = q[:60] + ("…" if len(q) > 60 else "")
+                val = st.number_input(
+                    f"Q{i + 1}: {preview}", min_value=0.0, value=2.0, step=0.5,
+                    key=f"manual_table_mark_{i}"
+                )
+                marks.append(val)
 
     else:
         uploaded_pdf = st.file_uploader("Upload Question Paper PDF", type=["pdf"])
@@ -381,14 +406,39 @@ with st.container(border=True):
                 elif undetected_idx:
                     st.warning(
                         f"Auto-detected marks for {len(questions) - len(undetected_idx)} / "
-                        f"{len(questions)} questions. Enter marks for the rest below."
+                        f"{len(questions)} questions. Choose how to fill in the rest below."
                     )
-                    for i in undetected_idx:
-                        preview = questions[i][:70] + ("…" if len(questions[i]) > 70 else "")
-                        detected_marks[i] = st.number_input(
-                            f"Max marks — Q{i + 1}: {preview}",
-                            min_value=0.0, value=1.0, step=0.5, key=f"manual_mark_{i}"
+                    leftover_method = st.radio(
+                        "Leftover marks method",
+                        ["Table", "Same for all remaining", "Split a total"],
+                        horizontal=True,
+                        key="pdf_leftover_method",
+                        label_visibility="collapsed"
+                    )
+                    if leftover_method == "Table":
+                        for i in undetected_idx:
+                            preview = questions[i][:70] + ("…" if len(questions[i]) > 70 else "")
+                            detected_marks[i] = st.number_input(
+                                f"Max marks — Q{i + 1}: {preview}",
+                                min_value=0.0, value=1.0, step=0.5, key=f"manual_mark_{i}"
+                            )
+                    elif leftover_method == "Same for all remaining":
+                        same_val = st.number_input(
+                            f"Marks for each of these {len(undetected_idx)} remaining questions",
+                            min_value=0.0, value=2.0, step=0.5, key="pdf_leftover_same"
                         )
+                        for i in undetected_idx:
+                            detected_marks[i] = same_val
+                    else:  # Split a total
+                        total_val = st.number_input(
+                            f"Total marks to split across these {len(undetected_idx)} questions",
+                            min_value=0.0, value=float(len(undetected_idx) * 2), step=0.5,
+                            key="pdf_leftover_total"
+                        )
+                        per_q = total_val / len(undetected_idx) if undetected_idx else 0
+                        for i in undetected_idx:
+                            detected_marks[i] = round(per_q, 2)
+                        st.caption(f"{total_val:g} ÷ {len(undetected_idx)} ≈ {per_q:.2f} each.")
 
                 marks = detected_marks
 
