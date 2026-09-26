@@ -262,18 +262,44 @@ def extract_numbered_items(text: str) -> list[str]:
     Text-based PDF extraction returns one line per visual line, so a single
     question with multiple answer options (or a title/subtitle line) would
     otherwise be miscounted as several separate items. This groups every
-    line under the numbered marker it belongs to (e.g. "1.", "2)") until the
-    next numbered marker appears, so options/wrapped lines stay attached to
-    their question. Lines before the first numbered marker (titles,
-    instructions, student name/ID headers) are dropped.
+    line under the numbered marker it belongs to until the next numbered
+    marker appears, so options/wrapped lines stay attached to their question.
+
+    Recognizes plain "1." / "1)" as well as common real-world variants:
+    "Q1.", "Q1)", "Q.1", "Q-1", "Q1 Answer:", and "Question 1:" (case-insensitive).
+
+    Some papers also contain an unrelated numbered list (e.g. "1. 2. 3."
+    labelling reading-passage sub-questions) that isn't the real question
+    numbering. To avoid miscounting those as extra questions, this detects
+    which numbering style (Q-prefixed vs plain) is used by most lines in the
+    document, and only treats that dominant style as a question boundary —
+    a minority-style stray marker gets folded into the previous question's
+    text instead of starting a bogus new one.
+
+    Lines before the first real numbered marker (titles, instructions,
+    student name/ID headers) are dropped.
     """
     lines = [line.strip() for line in text.splitlines() if line.strip()]
-    marker = re.compile(r"^(\d{1,3})[\.\)]\s+")
+
+    q_style = re.compile(r"^Q(?:uestion)?\.?\s*-?\s*(\d{1,3})\b(?:[\.\):]\s*|\s+)", re.IGNORECASE)
+    plain_style = re.compile(r"^(\d{1,3})[\.\):]\s+")
+
+    q_count = sum(1 for ln in lines if q_style.match(ln))
+    plain_count = sum(1 for ln in lines if plain_style.match(ln) and not q_style.match(ln))
+
+    # If "Q1."-style markers clearly dominate, trust only those as boundaries
+    # (a handful of bare "1./2./3." lines elsewhere are treated as stray text).
+    q_dominant = q_count >= 5 and q_count >= plain_count * 2
+
+    def is_boundary(line: str) -> bool:
+        if q_dominant:
+            return bool(q_style.match(line))
+        return bool(plain_style.match(line)) or bool(q_style.match(line))
 
     items = []
     current = []
     for line in lines:
-        if marker.match(line):
+        if is_boundary(line):
             if current:
                 items.append(" ".join(current).strip())
             current = [line]
@@ -318,6 +344,46 @@ def detect_marks_for_questions(questions: list[str], source_text: str, widget_pr
     leftovers, and return the final marks list. Shared by the PDF, DOCX and
     Image question-paper input paths so the logic isn't duplicated three times.
     """
+    # Tier 0: some papers print "[2 Marks]" as its own line/text-box rather
+    # than trailing the question text, so PDF extraction can pull all such
+    # tags out in one or more separate clusters instead of attached to their
+    # question. If the document has exactly as many bracket tags as there
+    # are questions, trust their overall left-to-right/top-to-bottom order
+    # and assign them positionally — far more reliable here than requiring
+    # the tag to trail the question on the same line.
+    all_bracket_values = re.findall(
+        r"\[\s*([\d.]+)\s*(?:marks?)?\s*\]", source_text, flags=re.IGNORECASE
+    )
+    if questions and len(all_bracket_values) == len(questions):
+        marks = [float(v) for v in all_bracket_values]
+        st.success(
+            f"Auto-detected marks for all {len(questions)} questions "
+            f"(matched {len(questions)} \"[marks]\" tags in document order)."
+        )
+        with st.expander("Manually override marks (optional)"):
+            marks_text = st.text_area(
+                "Maximum marks (one per extracted question) — leave blank to keep "
+                "the auto-detected values above",
+                placeholder="Leave empty to use auto-detected marks",
+                height=100,
+                key=f"{widget_prefix}_override_text"
+            )
+            if marks_text.strip():
+                try:
+                    manual_marks = [
+                        float(x.strip()) for x in marks_text.splitlines() if x.strip()
+                    ]
+                    if len(manual_marks) == len(questions):
+                        marks = manual_marks
+                    else:
+                        st.warning(
+                            f"Manual list has {len(manual_marks)} values but there are "
+                            f"{len(questions)} questions — auto-detected values kept instead."
+                        )
+                except ValueError:
+                    st.warning("Could not parse manual marks — auto-detected values kept instead.")
+        return marks
+
     bracket_re = re.compile(r"\[\s*([\d.]+)\s*\]\s*$")
     rate_matches = re.findall(
         r"each question carries\s*([\d.]+)", source_text, flags=re.IGNORECASE
@@ -335,6 +401,23 @@ def detect_marks_for_questions(questions: list[str], source_text: str, widget_pr
         else:
             detected_marks.append(None)
             undetected_idx.append(i)
+
+    # Some PDFs print marks as standalone "[2 Marks]" annotations in a
+    # margin/column that gets extracted as a separate detached cluster,
+    # disconnected from its question's line. If nothing was found above but
+    # the document has exactly as many standalone mark-lines as questions,
+    # match them in the same top-to-bottom order they appear.
+    if questions and len(undetected_idx) == len(questions):
+        standalone_re = re.compile(r"^\[\s*([\d.]+)\s*Marks?\s*\]\s*$", re.IGNORECASE | re.MULTILINE)
+        standalone_vals = [float(v) for v in standalone_re.findall(source_text)]
+        if len(standalone_vals) == len(questions):
+            detected_marks = standalone_vals
+            undetected_idx = []
+            st.info(
+                f"Found {len(questions)} standalone mark annotations elsewhere in the PDF "
+                "(common when marks are printed in a margin/separate column) and matched "
+                "them to the questions in order — please spot-check a few."
+            )
 
     if questions and not undetected_idx:
         st.success(f"Auto-detected marks for all {len(questions)} questions.")
