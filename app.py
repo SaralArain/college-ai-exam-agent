@@ -355,15 +355,82 @@ with st.container(border=True):
                 # question's options / wrapped lines aren't counted separately.
                 questions = extract_numbered_items(pdf_text)
 
-                marks_text = st.text_area(
-                    "Maximum marks (one per extracted question)",
-                    placeholder="5\n5\n10",
-                    height=120
+                # --- Auto-detect max marks instead of requiring manual entry ---
+                # 1) Look for a trailing bracket on the question itself, e.g. "...[2]" or "...[2.5]"
+                bracket_re = re.compile(r"\[\s*([\d.]+)\s*\]\s*$")
+                # 2) Fallback: a single document-wide "each question carries X marks" statement
+                rate_matches = re.findall(
+                    r"each question carries\s*([\d.]+)", pdf_text, flags=re.IGNORECASE
                 )
-                try:
-                    marks = [float(x.strip()) for x in marks_text.splitlines() if x.strip()]
-                except ValueError:
-                    marks = []
+                fallback_rate = float(rate_matches[0]) if len(set(rate_matches)) == 1 else None
+
+                detected_marks: list = []
+                undetected_idx = []
+                for i, q in enumerate(questions):
+                    m = bracket_re.search(q)
+                    if m:
+                        detected_marks.append(float(m.group(1)))
+                    elif fallback_rate is not None:
+                        detected_marks.append(fallback_rate)
+                    else:
+                        detected_marks.append(None)
+                        undetected_idx.append(i)
+
+                if questions and not undetected_idx:
+                    st.success(f"Auto-detected marks for all {len(questions)} questions from the PDF.")
+                elif undetected_idx:
+                    st.warning(
+                        f"Auto-detected marks for {len(questions) - len(undetected_idx)} / "
+                        f"{len(questions)} questions. Enter marks for the rest below."
+                    )
+                    for i in undetected_idx:
+                        preview = questions[i][:70] + ("…" if len(questions[i]) > 70 else "")
+                        detected_marks[i] = st.number_input(
+                            f"Max marks — Q{i + 1}: {preview}",
+                            min_value=0.0, value=1.0, step=0.5, key=f"manual_mark_{i}"
+                        )
+
+                marks = detected_marks
+
+                # Sanity-check extracted total against a stated "Total Marks: N" if present
+                total_match = re.search(
+                    r"total\s*marks\s*[:\-]?\s*([\d.]+)", pdf_text, flags=re.IGNORECASE
+                )
+                if total_match and marks and all(v is not None for v in marks):
+                    stated_total = float(total_match.group(1))
+                    extracted_total = sum(marks)
+                    if abs(stated_total - extracted_total) < 0.01:
+                        st.success(
+                            f"Extracted total = {extracted_total:g} — matches the paper's "
+                            f"stated Total Marks: {stated_total:g}."
+                        )
+                    else:
+                        st.error(
+                            f"Extracted total = {extracted_total:g}, but the paper states "
+                            f"Total Marks: {stated_total:g}. Please check the questions above."
+                        )
+
+                with st.expander("Manually override marks (optional)"):
+                    marks_text = st.text_area(
+                        "Maximum marks (one per extracted question) — leave blank to keep "
+                        "the auto-detected values above",
+                        placeholder="Leave empty to use auto-detected marks",
+                        height=100
+                    )
+                    if marks_text.strip():
+                        try:
+                            manual_marks = [
+                                float(x.strip()) for x in marks_text.splitlines() if x.strip()
+                            ]
+                            if len(manual_marks) == len(questions):
+                                marks = manual_marks
+                            else:
+                                st.warning(
+                                    f"Manual list has {len(manual_marks)} values but there are "
+                                    f"{len(questions)} questions — auto-detected values kept instead."
+                                )
+                        except ValueError:
+                            st.warning("Could not parse manual marks — auto-detected values kept instead.")
 
             except Exception as e:
                 st.error(f"Could not read PDF: {e}")
