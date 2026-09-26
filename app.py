@@ -4,6 +4,7 @@ import json
 import pandas as pd
 import streamlit as st
 from pypdf import PdfReader
+from docx import Document as DocxDocument
 from agents import create_exam_checker, create_question_analyzer, create_review_agent
 from tasks import create_exam_task, create_question_analysis_task, create_review_task
 from result_engine import calculate_result, parse_ai_results
@@ -311,12 +312,121 @@ questions = []
 marks = []
 answers = []
 
+def detect_marks_for_questions(questions: list[str], source_text: str, widget_prefix: str) -> list:
+    """Run the bracket/section-rate/leftover-method cascade on an already
+    extracted list of questions, rendering whatever UI is needed for any
+    leftovers, and return the final marks list. Shared by the PDF, DOCX and
+    Image question-paper input paths so the logic isn't duplicated three times.
+    """
+    bracket_re = re.compile(r"\[\s*([\d.]+)\s*\]\s*$")
+    rate_matches = re.findall(
+        r"each question carries\s*([\d.]+)", source_text, flags=re.IGNORECASE
+    )
+    fallback_rate = float(rate_matches[0]) if len(set(rate_matches)) == 1 else None
+
+    detected_marks: list = []
+    undetected_idx = []
+    for i, q in enumerate(questions):
+        m = bracket_re.search(q)
+        if m:
+            detected_marks.append(float(m.group(1)))
+        elif fallback_rate is not None:
+            detected_marks.append(fallback_rate)
+        else:
+            detected_marks.append(None)
+            undetected_idx.append(i)
+
+    if questions and not undetected_idx:
+        st.success(f"Auto-detected marks for all {len(questions)} questions.")
+    elif undetected_idx:
+        st.warning(
+            f"Auto-detected marks for {len(questions) - len(undetected_idx)} / "
+            f"{len(questions)} questions. Choose how to fill in the rest below."
+        )
+        leftover_method = st.radio(
+            "Leftover marks method",
+            ["Table", "Same for all remaining", "Split a total"],
+            horizontal=True,
+            key=f"{widget_prefix}_leftover_method",
+            label_visibility="collapsed"
+        )
+        if leftover_method == "Table":
+            for i in undetected_idx:
+                preview = questions[i][:70] + ("…" if len(questions[i]) > 70 else "")
+                detected_marks[i] = st.number_input(
+                    f"Max marks — Q{i + 1}: {preview}",
+                    min_value=0.0, value=1.0, step=0.5, key=f"{widget_prefix}_mark_{i}"
+                )
+        elif leftover_method == "Same for all remaining":
+            same_val = st.number_input(
+                f"Marks for each of these {len(undetected_idx)} remaining questions",
+                min_value=0.0, value=2.0, step=0.5, key=f"{widget_prefix}_leftover_same"
+            )
+            for i in undetected_idx:
+                detected_marks[i] = same_val
+        else:  # Split a total
+            total_val = st.number_input(
+                f"Total marks to split across these {len(undetected_idx)} questions",
+                min_value=0.0, value=float(len(undetected_idx) * 2), step=0.5,
+                key=f"{widget_prefix}_leftover_total"
+            )
+            per_q = total_val / len(undetected_idx) if undetected_idx else 0
+            for i in undetected_idx:
+                detected_marks[i] = round(per_q, 2)
+            st.caption(f"{total_val:g} ÷ {len(undetected_idx)} ≈ {per_q:.2f} each.")
+
+    marks = detected_marks
+
+    total_match = re.search(
+        r"total\s*marks\s*[:\-]?\s*([\d.]+)", source_text, flags=re.IGNORECASE
+    )
+    if total_match and marks and all(v is not None for v in marks):
+        stated_total = float(total_match.group(1))
+        extracted_total = sum(marks)
+        if abs(stated_total - extracted_total) < 0.01:
+            st.success(
+                f"Extracted total = {extracted_total:g} — matches the paper's "
+                f"stated Total Marks: {stated_total:g}."
+            )
+        else:
+            st.error(
+                f"Extracted total = {extracted_total:g}, but the paper states "
+                f"Total Marks: {stated_total:g}. Please check the questions above."
+            )
+
+    with st.expander("Manually override marks (optional)"):
+        marks_text = st.text_area(
+            "Maximum marks (one per extracted question) — leave blank to keep "
+            "the auto-detected values above",
+            placeholder="Leave empty to use auto-detected marks",
+            height=100,
+            key=f"{widget_prefix}_override_text"
+        )
+        if marks_text.strip():
+            try:
+                manual_marks = [
+                    float(x.strip()) for x in marks_text.splitlines() if x.strip()
+                ]
+                if len(manual_marks) == len(questions):
+                    marks = manual_marks
+                else:
+                    st.warning(
+                        f"Manual list has {len(manual_marks)} values but there are "
+                        f"{len(questions)} questions — auto-detected values kept instead."
+                    )
+            except ValueError:
+                st.warning("Could not parse manual marks — auto-detected values kept instead.")
+
+    return marks
+
+
 # ---------- Input mode ----------
 with st.container(border=True):
     step_header("1", "Exam Input", GRAD_BLUE)
     input_mode = st.radio(
         "Choose input method",
-        ["Manual Questions", "Upload Question Paper PDF"],
+        ["Manual Questions", "Upload Question Paper PDF",
+         "Upload Question Paper DOCX", "Upload Question Paper Image"],
         horizontal=True
     )
 
@@ -363,7 +473,7 @@ with st.container(border=True):
                 )
                 marks.append(val)
 
-    else:
+    elif input_mode == "Upload Question Paper PDF":
         uploaded_pdf = st.file_uploader("Upload Question Paper PDF", type=["pdf"])
         if uploaded_pdf:
             try:
@@ -373,117 +483,65 @@ with st.container(border=True):
 
                 st.warning(
                     "PDF extraction works for text-based PDFs. Scanned/handwritten PDFs "
-                    "need the OCR/image mode below."
+                    "need the Image upload option instead."
                 )
 
                 # Group lines by numbered question marker (1., 2., ...) so a
                 # question's options / wrapped lines aren't counted separately.
                 questions = extract_numbered_items(pdf_text)
-
-                # --- Auto-detect max marks instead of requiring manual entry ---
-                # 1) Look for a trailing bracket on the question itself, e.g. "...[2]" or "...[2.5]"
-                bracket_re = re.compile(r"\[\s*([\d.]+)\s*\]\s*$")
-                # 2) Fallback: a single document-wide "each question carries X marks" statement
-                rate_matches = re.findall(
-                    r"each question carries\s*([\d.]+)", pdf_text, flags=re.IGNORECASE
-                )
-                fallback_rate = float(rate_matches[0]) if len(set(rate_matches)) == 1 else None
-
-                detected_marks: list = []
-                undetected_idx = []
-                for i, q in enumerate(questions):
-                    m = bracket_re.search(q)
-                    if m:
-                        detected_marks.append(float(m.group(1)))
-                    elif fallback_rate is not None:
-                        detected_marks.append(fallback_rate)
-                    else:
-                        detected_marks.append(None)
-                        undetected_idx.append(i)
-
-                if questions and not undetected_idx:
-                    st.success(f"Auto-detected marks for all {len(questions)} questions from the PDF.")
-                elif undetected_idx:
-                    st.warning(
-                        f"Auto-detected marks for {len(questions) - len(undetected_idx)} / "
-                        f"{len(questions)} questions. Choose how to fill in the rest below."
-                    )
-                    leftover_method = st.radio(
-                        "Leftover marks method",
-                        ["Table", "Same for all remaining", "Split a total"],
-                        horizontal=True,
-                        key="pdf_leftover_method",
-                        label_visibility="collapsed"
-                    )
-                    if leftover_method == "Table":
-                        for i in undetected_idx:
-                            preview = questions[i][:70] + ("…" if len(questions[i]) > 70 else "")
-                            detected_marks[i] = st.number_input(
-                                f"Max marks — Q{i + 1}: {preview}",
-                                min_value=0.0, value=1.0, step=0.5, key=f"manual_mark_{i}"
-                            )
-                    elif leftover_method == "Same for all remaining":
-                        same_val = st.number_input(
-                            f"Marks for each of these {len(undetected_idx)} remaining questions",
-                            min_value=0.0, value=2.0, step=0.5, key="pdf_leftover_same"
-                        )
-                        for i in undetected_idx:
-                            detected_marks[i] = same_val
-                    else:  # Split a total
-                        total_val = st.number_input(
-                            f"Total marks to split across these {len(undetected_idx)} questions",
-                            min_value=0.0, value=float(len(undetected_idx) * 2), step=0.5,
-                            key="pdf_leftover_total"
-                        )
-                        per_q = total_val / len(undetected_idx) if undetected_idx else 0
-                        for i in undetected_idx:
-                            detected_marks[i] = round(per_q, 2)
-                        st.caption(f"{total_val:g} ÷ {len(undetected_idx)} ≈ {per_q:.2f} each.")
-
-                marks = detected_marks
-
-                # Sanity-check extracted total against a stated "Total Marks: N" if present
-                total_match = re.search(
-                    r"total\s*marks\s*[:\-]?\s*([\d.]+)", pdf_text, flags=re.IGNORECASE
-                )
-                if total_match and marks and all(v is not None for v in marks):
-                    stated_total = float(total_match.group(1))
-                    extracted_total = sum(marks)
-                    if abs(stated_total - extracted_total) < 0.01:
-                        st.success(
-                            f"Extracted total = {extracted_total:g} — matches the paper's "
-                            f"stated Total Marks: {stated_total:g}."
-                        )
-                    else:
-                        st.error(
-                            f"Extracted total = {extracted_total:g}, but the paper states "
-                            f"Total Marks: {stated_total:g}. Please check the questions above."
-                        )
-
-                with st.expander("Manually override marks (optional)"):
-                    marks_text = st.text_area(
-                        "Maximum marks (one per extracted question) — leave blank to keep "
-                        "the auto-detected values above",
-                        placeholder="Leave empty to use auto-detected marks",
-                        height=100
-                    )
-                    if marks_text.strip():
-                        try:
-                            manual_marks = [
-                                float(x.strip()) for x in marks_text.splitlines() if x.strip()
-                            ]
-                            if len(manual_marks) == len(questions):
-                                marks = manual_marks
-                            else:
-                                st.warning(
-                                    f"Manual list has {len(manual_marks)} values but there are "
-                                    f"{len(questions)} questions — auto-detected values kept instead."
-                                )
-                        except ValueError:
-                            st.warning("Could not parse manual marks — auto-detected values kept instead.")
+                marks = detect_marks_for_questions(questions, pdf_text, "pdf")
 
             except Exception as e:
                 st.error(f"Could not read PDF: {e}")
+
+    elif input_mode == "Upload Question Paper DOCX":
+        uploaded_docx = st.file_uploader("Upload Question Paper DOCX", type=["docx"])
+        if uploaded_docx:
+            try:
+                doc = DocxDocument(uploaded_docx)
+                docx_text = "\n".join(p.text for p in doc.paragraphs if p.text.strip())
+                st.text_area("Extracted Question Paper Text", docx_text, height=250)
+
+                questions = extract_numbered_items(docx_text)
+                marks = detect_marks_for_questions(questions, docx_text, "docx")
+
+            except Exception as e:
+                st.error(f"Could not read DOCX: {e}")
+
+    else:  # Upload Question Paper Image
+        question_image = st.file_uploader(
+            "Upload a photo/scan of the question paper",
+            type=["png", "jpg", "jpeg"],
+            key="question_image"
+        )
+        if question_image:
+            st.image(question_image, caption="Uploaded question paper", use_container_width=True)
+            st.warning(
+                "Image OCR uses Gemini vision. Works best on a clear, well-lit, printed "
+                "question paper — handwritten papers may need manual correction below."
+            )
+            if st.button("🔎 Extract Questions with AI OCR"):
+                from ocr import extract_questions_from_image
+                with st.spinner("Reading the question paper..."):
+                    try:
+                        extracted = extract_questions_from_image(
+                            question_image.getvalue(),
+                            mime_type=question_image.type or "image/jpeg",
+                        )
+                        st.session_state.question_ocr_text = extracted
+                        st.success("OCR extraction completed.")
+                    except Exception as e:
+                        st.error(f"OCR error: {e}")
+
+            question_ocr_text = st.text_area(
+                "OCR text / corrected questions",
+                value=st.session_state.get("question_ocr_text", ""),
+                height=220
+            )
+            questions = extract_numbered_items(question_ocr_text)
+            marks = detect_marks_for_questions(questions, question_ocr_text, "img")
+        else:
+            questions, marks = [], []
 
 # ---------- Student answer sheet ----------
 with st.container(border=True):
