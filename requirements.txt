@@ -1,6 +1,7 @@
 streamlit
 crewai[google-genai]
 crewai-tools
+tavily-python
 google-genai
 pypdf
 pandas
