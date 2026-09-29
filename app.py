@@ -161,23 +161,6 @@ div[role="radiogroup"] label:has(input:checked) p {
     font-weight: 600 !important;
 }
 
-/* Checkbox accent color + explicit checked-state (Streamlit draws its own
-   box/checkmark, so the checked look needs its own rule or it can end up
-   invisible against the dark theme, making a real click look like nothing
-   happened) */
-input[type="checkbox"] { accent-color: var(--neon) !important; }
-div[data-baseweb="checkbox"] > div:first-child { border-color: var(--neon-soft) !important; }
-div[data-baseweb="checkbox"]:has(input:checked) > div:first-child,
-label:has(input[type="checkbox"]:checked) div[data-baseweb="checkbox"] > div:first-child {
-    background: var(--neon) !important;
-    border-color: var(--neon) !important;
-}
-div[data-baseweb="checkbox"]:has(input:checked) svg,
-label:has(input[type="checkbox"]:checked) svg {
-    fill: #04101f !important;
-    opacity: 1 !important;
-}
-
 /* Metrics */
 [data-testid="stMetric"] {
     background: rgba(255,255,255,0.03);
