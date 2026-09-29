@@ -332,7 +332,11 @@ with st.sidebar:
     use_web_research = st.checkbox(
         "Use Tavily research when needed",
         value=False,
-        help="Optional. Ordinary grading should primarily use the teacher's material."
+        help=(
+            "Lets the AI search the web to verify uncertain facts (e.g. recent events, "
+            "specific figures) while grading. Requires a TAVILY_API_KEY in Streamlit "
+            "secrets. Ordinary grading should primarily use the teacher's material."
+        )
     )
 
 questions = []
@@ -753,7 +757,7 @@ with st.container(border=True):
             with st.spinner("CrewAI examiner is checking the exam..."):
                 try:
                     if attempted_data:
-                        examiner = create_exam_checker()
+                        examiner = create_exam_checker(use_web_research=use_web_research)
                         task = create_exam_task(
                             examiner,
                             subject,
