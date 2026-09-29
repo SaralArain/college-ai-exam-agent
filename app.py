@@ -226,6 +226,7 @@ div[data-testid*="Info"] {
 .qbadge.full { background: rgba(0, 230, 150, 0.15); color: #00e696; }
 .qbadge.partial { background: rgba(255, 176, 32, 0.15); color: #ffb020; }
 .qbadge.zero { background: rgba(255, 64, 129, 0.15); color: #ff4081; }
+.qbadge.skipped { background: rgba(143, 164, 192, 0.18); color: #8fa4c0; }
 .qcard .qfeedback { font-size: 0.85rem; color: var(--text-dim); margin-top: 4px; line-height: 1.5; }
 
 /* Divider */
@@ -703,44 +704,73 @@ with st.container(border=True):
             st.warning("Enter the student name.")
         elif not questions:
             st.warning("Add or upload questions.")
-        elif len(questions) != len(answers):
-            st.error(
-                f"Questions = {len(questions)}, Answers = {len(answers)}. "
-                "They must match in this version."
-            )
         elif len(questions) != len(marks):
             st.error(
                 f"Questions = {len(questions)}, Mark values = {len(marks)}. "
                 "They must match."
             )
         else:
-            exam_data = [
-                {
-                    "number": i + 1,
+            NOT_ATTEMPTED = "[NOT ATTEMPTED]"
+            num_re = re.compile(r"^(?:Q(?:uestion)?\.?\s*-?\s*)?(\d{1,3})\b", re.IGNORECASE)
+
+            def leading_number(text, fallback):
+                m = num_re.match(text.strip())
+                return int(m.group(1)) if m else fallback
+
+            # Match answers to questions by their own printed number, not by
+            # list position — so a student skipping some questions doesn't
+            # require the two lists to be the same length.
+            answers_by_num = {}
+            for i, a in enumerate(answers):
+                answers_by_num[leading_number(a, i + 1)] = a
+
+            exam_data = []
+            skipped_count = 0
+            for i, q in enumerate(questions):
+                qn = leading_number(q, i + 1)
+                answer = answers_by_num.get(qn)
+                if answer is None:
+                    answer = NOT_ATTEMPTED
+                    skipped_count += 1
+                exam_data.append({
+                    "number": i + 1,   # positional number, matches marks[i]
                     "question": q,
-                    "answer": a,
-                    "max_marks": m,
-                }
-                for i, (q, a, m) in enumerate(zip(questions, answers, marks))
-            ]
+                    "answer": answer,
+                    "max_marks": marks[i],
+                })
+
+            if skipped_count:
+                st.info(
+                    f"{len(questions) - skipped_count} of {len(questions)} questions "
+                    f"were answered. The remaining {skipped_count} will be scored as "
+                    f"Not Attempted (0 marks each)."
+                )
+
+            # Only send attempted questions to the AI — skipped ones are
+            # scored locally as 0, not sent for grading.
+            attempted_data = [item for item in exam_data if item["answer"] != NOT_ATTEMPTED]
 
             with st.spinner("CrewAI examiner is checking the exam..."):
                 try:
-                    examiner = create_exam_checker()
-                    task = create_exam_task(
-                        examiner,
-                        subject,
-                        exam_data,
-                        use_web_research=use_web_research
-                    )
+                    if attempted_data:
+                        examiner = create_exam_checker()
+                        task = create_exam_task(
+                            examiner,
+                            subject,
+                            attempted_data,
+                            use_web_research=use_web_research
+                        )
 
-                    from crewai import Crew
-                    crew = Crew(agents=[examiner], tasks=[task], verbose=False)
-                    result = crew.kickoff()
+                        from crewai import Crew
+                        crew = Crew(agents=[examiner], tasks=[task], verbose=False)
+                        result = crew.kickoff()
+                        raw_result = result.raw
+                    else:
+                        raw_result = ""  # nothing attempted; every question is 0
 
                     st.session_state.exam_result = {
-                        "raw": result.raw,
-                        "exam_data": exam_data,
+                        "raw": raw_result,
+                        "exam_data": exam_data,  # full list, including skipped ones
                         "student": student_name,
                         "subject": subject,
                         "pass_percentage": pass_percentage,
@@ -765,15 +795,21 @@ if data:
             qn = item["number"]
             earned = item["earned"]
             max_marks = item["max_marks"]
-            feedback = item["feedback"] or "—"
-            missing = item["missing"] or "None"
+            was_skipped = exam_by_number.get(qn, {}).get("answer") == "[NOT ATTEMPTED]"
 
-            if earned <= 0:
-                status_cls, status_label = "zero", "Zero"
-            elif earned >= max_marks - 1e-9:
-                status_cls, status_label = "full", "Full marks"
+            if was_skipped:
+                status_cls, status_label = "skipped", "Not Attempted"
+                feedback = "This question was not answered."
+                missing = "A response to this question."
             else:
-                status_cls, status_label = "partial", "Partial"
+                feedback = item["feedback"] or "—"
+                missing = item["missing"] or "None"
+                if earned <= 0:
+                    status_cls, status_label = "zero", "Zero"
+                elif earned >= max_marks - 1e-9:
+                    status_cls, status_label = "full", "Full marks"
+                else:
+                    status_cls, status_label = "partial", "Partial"
 
             st.markdown(
                 f'<div class="qcard">'
@@ -787,6 +823,8 @@ if data:
             )
             with st.expander(f"Show answer details — Q{qn}"):
                 student_answer = exam_by_number.get(qn, {}).get("answer", "—")
+                if student_answer == "[NOT ATTEMPTED]":
+                    student_answer = "*(Not attempted)*"
                 st.markdown(f"**Student's Answer:** {student_answer}")
                 st.markdown(f"**Missing Points:** {missing}")
 
