@@ -351,6 +351,10 @@ with st.sidebar:
             "secrets. Ordinary grading should primarily use the teacher's material."
         )
     )
+    if use_web_research:
+        st.caption("✅ Tavily research: ON")
+    else:
+        st.caption("⚪ Tavily research: OFF")
 
 questions = []
 marks = []
