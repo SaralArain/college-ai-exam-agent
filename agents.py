@@ -9,7 +9,24 @@ def get_llm():
     )
 
 
-def create_exam_checker():
+def create_exam_checker(use_web_research: bool = False):
+    tools = []
+    if use_web_research:
+        try:
+            from crewai_tools import TavilySearchTool
+            import os
+            api_key = st.secrets.get("TAVILY_API_KEY")
+            if api_key:
+                os.environ["TAVILY_API_KEY"] = api_key
+                tools = [TavilySearchTool()]
+            else:
+                st.warning(
+                    "\"Use Tavily research\" was checked, but no TAVILY_API_KEY is set "
+                    "in Streamlit secrets — grading will continue without web search."
+                )
+        except Exception as e:
+            st.warning(f"Could not enable Tavily search ({e}) — continuing without it.")
+
     return Agent(
         role="College Exam Examiner",
         goal=(
@@ -22,6 +39,7 @@ def create_exam_checker():
             "and important missing points. You never exceed maximum marks."
         ),
         llm=get_llm(),
+        tools=tools,
         verbose=True,
     )
 
