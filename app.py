@@ -325,15 +325,22 @@ with st.sidebar:
     pass_percentage = st.number_input(
         "Pass Percentage", min_value=0, max_value=100, value=50
     )
-    use_web_research = st.checkbox(
+    
+    # Initialize session state for Tavily if it doesn't exist
+    if "use_web_research" not in st.session_state:
+        st.session_state.use_web_research = False
+
+    # Use st.toggle instead of st.checkbox for better mobile experience
+    use_web_research = st.toggle(
         "Use Tavily research when needed",
-        value=False,
+        key="use_web_research",
         help=(
             "Lets the AI search the web to verify uncertain facts (e.g. recent events, "
             "specific figures) while grading. Requires a TAVILY_API_KEY in Streamlit "
             "secrets. Ordinary grading should primarily use the teacher's material."
         )
     )
+    
     if use_web_research:
         st.caption("✅ Tavily research: ON")
     else:
