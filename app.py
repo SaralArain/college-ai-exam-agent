@@ -326,20 +326,21 @@ with st.sidebar:
         "Pass Percentage", min_value=0, max_value=100, value=50
     )
     
-    # Initialize session state for Tavily if it doesn't exist
-    if "use_web_research" not in st.session_state:
-        st.session_state.use_web_research = False
-
-    # Use st.toggle instead of st.checkbox for better mobile experience
-    use_web_research = st.toggle(
-        "Use Tavily research when needed",
-        key="use_web_research",
+    # Use a radio button instead of a toggle/checkbox
+    # Your app's CSS already styles this as a pill toggle, so it will look great
+    tavily_choice = st.radio(
+        "Tavily Research",
+        ["OFF", "ON"],
+        horizontal=True,
+        key="tavily_radio",
         help=(
-            "Lets the AI search the web to verify uncertain facts (e.g. recent events, "
-            "specific figures) while grading. Requires a TAVILY_API_KEY in Streamlit "
-            "secrets. Ordinary grading should primarily use the teacher's material."
+            "Lets the AI search the web to verify uncertain facts. Requires a "
+            "TAVILY_API_KEY in Streamlit secrets."
         )
     )
+    
+    # Convert the string choice to a boolean
+    use_web_research = (tavily_choice == "ON")
     
     if use_web_research:
         st.caption("✅ Tavily research: ON")
